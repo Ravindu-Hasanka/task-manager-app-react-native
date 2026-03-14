@@ -1,0 +1,342 @@
+import React, { useMemo, useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import {
+  getTaskDueLabel,
+  getTaskPriorityLabel,
+  getTaskStatusLabel,
+  isTaskCompleted,
+} from '@/constants/task-ui';
+import { buildTheme } from '@/constants/theme/build-theme';
+import { useThemeMode } from '@/hooks/use-theme-mode';
+import { TASKS } from '@/mock-data/tasks';
+import { Task } from '@/types/task';
+
+export default function TaskDetailsScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { mode } = useThemeMode();
+  const theme = useMemo(() => buildTheme(mode), [mode]);
+  const task = TASKS.find((item) => item.id === id);
+  const [completed, setCompleted] = useState(task ? isTaskCompleted(task) : false);
+
+  if (!task) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+        <View style={[styles.header, { borderBottomColor: theme.cardBorder }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={theme.textPrimary} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Task Details</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+
+        <View style={styles.emptyState}>
+          <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Task not found</Text>
+          <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+            This task may have been removed or is no longer available.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const currentTask: Task = {
+    ...task,
+    completed,
+    status: completed ? 'completed' : 'pending',
+  };
+  const priorityLabel = getTaskPriorityLabel(currentTask);
+  const dueLabel = getTaskDueLabel(currentTask);
+  const statusLabel = getTaskStatusLabel(currentTask);
+
+  const priorityStyles =
+    currentTask.priority === 'High'
+      ? { bg: mode === 'dark' ? '#4A2025' : '#FFE2E2', text: '#FF6B6B' }
+      : currentTask.priority === 'Medium'
+        ? { bg: mode === 'dark' ? '#4B3C16' : '#FBE7B6', text: '#D69E2E' }
+        : { bg: mode === 'dark' ? '#2D3748' : '#E2E8F0', text: '#64748B' };
+
+  const handleStatusChange = (nextCompleted: boolean) => {
+    task.completed = nextCompleted;
+    task.status = nextCompleted ? 'completed' : 'pending';
+    task.updatedAt = new Date().toISOString();
+    setCompleted(nextCompleted);
+  };
+
+  const handleDelete = () => {
+    const taskIndex = TASKS.findIndex((item) => item.id === task.id);
+
+    if (taskIndex !== -1) {
+      TASKS.splice(taskIndex, 1);
+    }
+
+    router.replace('/tasks');
+  };
+
+  return (
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+      <View style={[styles.header, { borderBottomColor: theme.cardBorder }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color={theme.textPrimary} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Task Details</Text>
+        <View style={styles.headerSpacer} />
+      </View>
+
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Text style={[styles.taskTitle, { color: theme.textPrimary }]}>{currentTask.title}</Text>
+
+        <View style={styles.badgeRow}>
+          <View style={[styles.badge, { backgroundColor: priorityStyles.bg, borderColor: priorityStyles.text }]}>
+            <Ionicons name="alert-circle-outline" size={16} color={priorityStyles.text} />
+            <Text style={[styles.badgeText, { color: priorityStyles.text }]}>{priorityLabel}</Text>
+          </View>
+
+          <View
+            style={[
+              styles.badge,
+              {
+                backgroundColor: mode === 'dark' ? '#142D5C' : '#D9E7FF',
+                borderColor: mode === 'dark' ? '#2E5FB7' : '#8CB4FF',
+              },
+            ]}
+          >
+            <Ionicons name="calendar-outline" size={16} color={theme.blue} />
+            <Text style={[styles.badgeText, { color: theme.blue }]}>{dueLabel}</Text>
+          </View>
+        </View>
+
+        <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>DESCRIPTION</Text>
+        <Text style={[styles.description, { color: theme.textPrimary }]}>{currentTask.description}</Text>
+
+        <View style={[styles.statusCard, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+          <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>TASK STATUS</Text>
+          <View
+            style={[
+              styles.statusSwitcher,
+              { backgroundColor: mode === 'dark' ? '#273246' : '#B8CDF5' },
+            ]}
+          >
+            <TouchableOpacity
+              onPress={() => handleStatusChange(false)}
+              style={[
+                styles.statusOption,
+                {
+                  backgroundColor: !completed ? theme.blue : 'transparent',
+                  borderColor: 'transparent',
+                },
+              ]}
+            >
+              <Ionicons
+                name="time-outline"
+                size={18}
+                color={!completed ? '#FFFFFF' : theme.textSecondary}
+              />
+              <Text style={[styles.statusOptionText, { color: !completed ? '#FFFFFF' : theme.textSecondary }]}>
+                Pending
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => handleStatusChange(true)}
+              style={[
+                styles.statusOption,
+                {
+                  backgroundColor: completed ? theme.blue : 'transparent',
+                  borderColor: 'transparent',
+                },
+              ]}
+            >
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={18}
+                color={completed ? '#FFFFFF' : theme.textSecondary}
+              />
+              <Text style={[styles.statusOptionText, { color: completed ? '#FFFFFF' : theme.textSecondary }]}>
+                Completed
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={[styles.categoryLabel, { color: theme.textSecondary }]}>
+            Category: <Text style={{ color: theme.textPrimary }}>{currentTask.category}</Text>
+          </Text>
+          <Text style={[styles.categoryLabel, { color: theme.textSecondary }]}>
+            Current status: <Text style={{ color: theme.textPrimary }}>{statusLabel}</Text>
+          </Text>
+        </View>
+      </ScrollView>
+
+      <View style={[styles.footer, { backgroundColor: mode === 'dark' ? '#111827' : '#EEF3FF', borderTopColor: theme.cardBorder }]}>
+        <TouchableOpacity
+          style={[
+            styles.footerButton,
+            styles.editButton,
+            { borderColor: theme.blue, backgroundColor: mode === 'dark' ? 'transparent' : '#F4F8FF' },
+          ]}
+        >
+          <Ionicons name="create-outline" size={20} color={theme.blue} />
+          <Text style={[styles.editButtonText, { color: theme.blue }]}>Edit Task</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.footerButton, styles.deleteButton]} onPress={handleDelete}>
+          <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
+          <Text style={styles.deleteButtonText}>Delete Task</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
+  header: {
+    height: 68,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+  },
+  backButton: {
+    width: 32,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  headerSpacer: {
+    width: 32,
+  },
+  content: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 32,
+  },
+  taskTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    lineHeight: 34,
+    marginBottom: 20,
+  },
+  badgeRow: {
+    gap: 12,
+    marginBottom: 28,
+  },
+  badge: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  badgeText: {
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  sectionLabel: {
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 1.4,
+    marginBottom: 14,
+  },
+  description: {
+    fontSize: 16,
+    lineHeight: 30,
+    fontWeight: '500',
+    marginBottom: 32,
+  },
+  statusCard: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 20,
+  },
+  statusSwitcher: {
+    borderRadius: 10,
+    flexDirection: 'row',
+    padding: 4,
+    marginBottom: 16,
+  },
+  statusOption: {
+    flex: 1,
+    height: 44,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  statusOptionText: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  categoryLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginTop: 6,
+  },
+  footer: {
+    borderTopWidth: 1,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 18,
+    flexDirection: 'row',
+    gap: 16,
+  },
+  footerButton: {
+    flex: 1,
+    height: 56,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  editButton: {
+    borderWidth: 2,
+  },
+  editButtonText: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  deleteButton: {
+    backgroundColor: '#D01D1D',
+    shadowColor: '#D01D1D',
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  deleteButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  emptyTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 15,
+    lineHeight: 24,
+    textAlign: 'center',
+  },
+});

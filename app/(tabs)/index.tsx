@@ -218,7 +218,17 @@ export const DashboardScreen = ({
           </View>
 
           {filteredTasks.map((task) => (
-            <TaskCard key={task.id} task={task} theme={theme} />
+            <TaskCard
+              key={task.id}
+              task={task}
+              theme={theme}
+              onPress={() =>
+                router.push({
+                  pathname: '/task/[id]',
+                  params: { id: task.id },
+                })
+              }
+            />
           ))}
         </ScrollView>
 
@@ -291,7 +301,15 @@ const FilterChip = ({
   </TouchableOpacity>
 );
 
-const TaskCard = ({ task, theme }: { task: Task; theme: ReturnType<typeof buildTheme> }) => {
+const TaskCard = ({
+  task,
+  theme,
+  onPress,
+}: {
+  task: Task;
+  theme: ReturnType<typeof buildTheme>;
+  onPress: () => void;
+}) => {
   const isCompleted = isTaskCompleted(task);
   const statusLabel = getTaskStatusLabel(task);
   const dueLabel = getTaskDueLabel(task);
@@ -305,7 +323,11 @@ const TaskCard = ({ task, theme }: { task: Task; theme: ReturnType<typeof buildT
       : { bg: theme.normalBg, text: theme.normalText };
 
   return (
-    <View style={[styles.taskCard, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+    <TouchableOpacity
+      activeOpacity={0.92}
+      onPress={onPress}
+      style={[styles.taskCard, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}
+    >
       <View style={styles.taskTopRow}>
         <View style={styles.taskMetaRow}>
           <View style={[styles.priorityBadge, { backgroundColor: priorityStyles.bg }]}>
@@ -351,7 +373,7 @@ const TaskCard = ({ task, theme }: { task: Task; theme: ReturnType<typeof buildT
         </Text>
         <Text style={[styles.categoryText, { color: theme.textSecondary }]}>{task.category}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
