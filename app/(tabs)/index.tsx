@@ -115,8 +115,7 @@ import { Filter } from '@/types/task-filter';
 import { Task } from '@/types/task';
 import { Header } from '@/components/header';
 import { TASKS } from '@/mock-data/tasks';
-import { BottomNav } from '@/components/bottom-navbar';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useThemeMode } from '@/hooks/use-theme-mode';
 
 export const DashboardScreen = ({
   mode,
@@ -240,20 +239,18 @@ export const DashboardScreen = ({
           <Ionicons name="add" size={34} color="#FFFFFF" />
         </TouchableOpacity>
 
-        <BottomNav theme={theme} />
       </View>
     </SafeAreaView>
   );
 };
 
 export default function HomeScreen() {
-  const colorScheme = useColorScheme();
-  const [mode, setMode] = useState<ThemeMode>(colorScheme === 'dark' ? 'dark' : 'light');
+  const { mode, toggleTheme } = useThemeMode();
 
   return (
     <DashboardScreen
       mode={mode}
-      onThemeToggle={() => setMode((current) => (current === 'dark' ? 'light' : 'dark'))}
+      onThemeToggle={toggleTheme}
     />
   );
 }
