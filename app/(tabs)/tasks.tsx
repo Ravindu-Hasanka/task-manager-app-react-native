@@ -1,0 +1,306 @@
+import React, { useMemo, useState } from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { buildTheme } from '@/constants/theme/build-theme';
+import { useThemeMode } from '@/hooks/use-theme-mode';
+import { TASKS } from '@/mock-data/tasks';
+import { Filter } from '@/types/task-filter';
+import { Task } from '@/types/task';
+
+export default function TasksScreen() {
+  const { mode } = useThemeMode();
+  const theme = useMemo(() => buildTheme(mode), [mode]);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<Filter>('all');
+
+  const filteredTasks = TASKS.filter((task) => {
+    const searchValue = search.toLowerCase();
+    const searchMatch =
+      task.title.toLowerCase().includes(searchValue) ||
+      task.subtitle.toLowerCase().includes(searchValue);
+
+    const filterMatch =
+      filter === 'all'
+        ? true
+        : filter === 'pending'
+          ? task.status === 'Pending'
+          : task.status === 'Completed';
+
+    return searchMatch && filterMatch;
+  });
+
+  return (
+    <SafeAreaView edges={['left', 'right']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View
+          style={[
+            styles.searchBox,
+            {
+              backgroundColor: theme.inputBg,
+              borderColor: theme.inputBorder,
+            },
+          ]}
+        >
+          <Feather name="search" size={20} color={theme.iconMuted} />
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search tasks..."
+            placeholderTextColor={theme.textSecondary}
+            style={[styles.searchInput, { color: theme.textPrimary }]}
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => setSearch('')}>
+              <Ionicons name="close-circle-outline" size={22} color={theme.iconMuted} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View style={styles.filterRow}>
+          <FilterChip label="All" active={filter === 'all'} onPress={() => setFilter('all')} theme={theme} />
+          <FilterChip
+            label="Pending"
+            active={filter === 'pending'}
+            onPress={() => setFilter('pending')}
+            theme={theme}
+          />
+          <FilterChip
+            label="Completed"
+            active={filter === 'completed'}
+            onPress={() => setFilter('completed')}
+            theme={theme}
+          />
+        </View>
+
+        <View style={styles.listHeader}>
+          <Text style={[styles.listTitle, { color: theme.textPrimary }]}>
+            {filteredTasks.length} task{filteredTasks.length === 1 ? '' : 's'}
+          </Text>
+          <Text style={[styles.listSubtitle, { color: theme.textSecondary }]}>Manage your daily workload</Text>
+        </View>
+
+        {filteredTasks.map((task) => (
+          <TaskCard key={task.id} task={task} theme={theme} />
+        ))}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const FilterChip = ({
+  label,
+  active,
+  onPress,
+  theme,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+  theme: ReturnType<typeof buildTheme>;
+}) => (
+  <TouchableOpacity
+    onPress={onPress}
+    style={[
+      styles.filterChip,
+      {
+        backgroundColor: active ? theme.blue : theme.chipBg,
+        borderColor: active ? theme.blue : theme.chipBorder,
+      },
+    ]}
+  >
+    <Text style={[styles.filterChipText, { color: active ? '#FFFFFF' : theme.textSecondary }]}>{label}</Text>
+  </TouchableOpacity>
+);
+
+const TaskCard = ({ task, theme }: { task: Task; theme: ReturnType<typeof buildTheme> }) => {
+  const isCompleted = task.status === 'Completed';
+
+  const priorityStyles =
+    task.priority === 'HIGH PRIORITY'
+      ? { bg: theme.highBg, text: theme.highText }
+      : task.priority === 'MEDIUM PRIORITY'
+        ? { bg: theme.mediumBg, text: theme.mediumText }
+        : { bg: theme.normalBg, text: theme.normalText };
+
+  return (
+    <View style={[styles.taskCard, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+      <View style={styles.taskTopRow}>
+        <View style={styles.taskMetaRow}>
+          <View style={[styles.priorityBadge, { backgroundColor: priorityStyles.bg }]}>
+            <Text style={[styles.priorityText, { color: priorityStyles.text }]}>{task.priority}</Text>
+          </View>
+          <Text style={[styles.taskTime, { color: theme.textSecondary }]}>{task.time}</Text>
+        </View>
+
+        {isCompleted ? (
+          <View style={[styles.completedIconBox, { backgroundColor: theme.successChip }]}>
+            <MaterialCommunityIcons name="check-all" size={22} color={theme.completed} />
+          </View>
+        ) : (
+          <TouchableOpacity style={[styles.menuButton, { borderColor: theme.chipBorder }]}>
+            <Feather name="more-vertical" size={18} color={theme.textSecondary} />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <Text
+        style={[
+          styles.taskTitle,
+          {
+            color: theme.textPrimary,
+            textDecorationLine: isCompleted ? 'line-through' : 'none',
+            opacity: isCompleted ? 0.6 : 1,
+          },
+        ]}
+      >
+        {task.title}
+      </Text>
+
+      <Text style={[styles.taskSubtitle, { color: theme.textSecondary }]}>{task.subtitle}</Text>
+
+      <View style={styles.statusRow}>
+        <Ionicons
+          name={isCompleted ? 'checkmark-circle-outline' : 'time-outline'}
+          size={14}
+          color={isCompleted ? theme.completed : theme.pending}
+        />
+        <Text style={[styles.statusText, { color: isCompleted ? theme.completed : theme.pending }]}>
+          {task.status}
+        </Text>
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
+  content: {
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 32,
+  },
+  searchBox: {
+    height: 54,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  filterRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 24,
+  },
+  filterChip: {
+    flex: 1,
+    height: 42,
+    borderRadius: 24,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterChipText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  listHeader: {
+    marginBottom: 18,
+  },
+  listTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  listSubtitle: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  taskCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 20,
+    marginBottom: 18,
+  },
+  taskTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  taskMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  priorityBadge: {
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  priorityText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  taskTime: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  menuButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  completedIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  taskTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    marginBottom: 6,
+  },
+  taskSubtitle: {
+    fontSize: 15,
+    fontWeight: '500',
+    marginBottom: 18,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statusText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+});

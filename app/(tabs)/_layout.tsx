@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router';
+import { router, usePathname, Tabs } from 'expo-router';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,12 +19,23 @@ export default function TabLayout() {
 function TabsShell() {
   const { mode, toggleTheme } = useThemeMode();
   const insets = useSafeAreaInsets();
+  const pathname = usePathname();
   const theme = buildTheme(mode);
+  const isTasksScreen = pathname === '/tasks';
 
   return (
     <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.headerContainer}>
-        <Header theme={theme} onThemeToggle={toggleTheme} />
+        {isTasksScreen ? (
+          <Header
+            theme={theme}
+            variant="title"
+            title="Task List"
+            onBackPress={() => router.replace('/')}
+          />
+        ) : (
+          <Header theme={theme} onThemeToggle={toggleTheme} />
+        )}
       </View>
 
       <View style={styles.tabsContainer}>
@@ -39,7 +50,7 @@ function TabsShell() {
             },
           }}>
           <Tabs.Screen name="index" />
-          <Tabs.Screen name="explore" />
+          <Tabs.Screen name="tasks" />
         </Tabs>
       </View>
 

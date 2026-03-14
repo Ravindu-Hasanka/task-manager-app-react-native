@@ -2,42 +2,67 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { buildTheme } from '@/constants/theme/build-theme';
 
+type HeaderProps =
+  | {
+      theme: ReturnType<typeof buildTheme>;
+      variant?: 'dashboard';
+      onThemeToggle: () => void;
+    }
+  | {
+      theme: ReturnType<typeof buildTheme>;
+      variant: 'title';
+      title: string;
+      onBackPress: () => void;
+    };
+
 export const Header = ({
   theme,
-  onThemeToggle,
-}: {
-  theme: ReturnType<typeof buildTheme>;
-  onThemeToggle: () => void;
-}) => (
-  <View style={styles.headerRow}>
-    <View style={styles.headerLeft}>
-      <View style={[styles.avatar, { borderColor: theme.avatarRing }]}>
-        <Ionicons name="person" size={22} color={theme.textPrimary} />
+  variant = 'dashboard',
+  ...props
+}: HeaderProps) => {
+  if (variant === 'title') {
+    return (
+      <View style={styles.titleHeaderRow}>
+        <TouchableOpacity onPress={props.onBackPress} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color={theme.textPrimary} />
+        </TouchableOpacity>
+        <Text style={[styles.titleText, { color: theme.textPrimary }]}>{props.title}</Text>
+        <View style={styles.backButton} />
       </View>
-      <View>
-        <Text style={[styles.greeting, { color: theme.textPrimary }]}>Good Morning, Dr. Nimal</Text>
-        <Text style={[styles.dateText, { color: theme.textSecondary }]}>Thursday, Oct 24</Text>
+    );
+  }
+
+  return (
+    <View style={styles.headerRow}>
+      <View style={styles.headerLeft}>
+        <View style={[styles.avatar, { borderColor: theme.avatarRing }]}>
+          <Ionicons name="person" size={22} color={theme.textPrimary} />
+        </View>
+        <View>
+          <Text style={[styles.greeting, { color: theme.textPrimary }]}>Good Morning, Dr. Nimal</Text>
+          <Text style={[styles.dateText, { color: theme.textSecondary }]}>Thursday, Oct 24</Text>
+        </View>
+      </View>
+
+      <View style={styles.headerActions}>
+        <TouchableOpacity
+          onPress={props.onThemeToggle}
+          style={[styles.themeButton, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}
+        >
+          <Ionicons
+            name={theme.mode === 'dark' ? 'sunny-outline' : 'moon-outline'}
+            size={20}
+            color={theme.textPrimary}
+          />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.bellButton, { backgroundColor: theme.blue }]}>
+          <Ionicons name="notifications-outline" size={20} color="#FFFFFF" />
+        </TouchableOpacity>
       </View>
     </View>
-
-    <View style={styles.headerActions}>
-      <TouchableOpacity
-        onPress={onThemeToggle}
-        style={[styles.themeButton, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}
-      >
-        <Ionicons
-          name={theme.mode === 'dark' ? 'sunny-outline' : 'moon-outline'}
-          size={20}
-          color={theme.textPrimary}
-        />
-      </TouchableOpacity>
-
-      <TouchableOpacity style={[styles.bellButton, { backgroundColor: theme.blue }]}>
-        <Ionicons name="notifications-outline" size={20} color="#FFFFFF" />
-      </TouchableOpacity>
-    </View>
-  </View>
-);
+  );
+};
 
 const styles = StyleSheet.create({
   headerRow: {
@@ -46,9 +71,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 28,
   },
+  titleHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
   },
   avatar: {
     width: 44,
@@ -81,6 +118,10 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: 17,
+    fontWeight: '800',
+  },
+  titleText: {
+    fontSize: 24,
     fontWeight: '800',
   },
   dateText: {

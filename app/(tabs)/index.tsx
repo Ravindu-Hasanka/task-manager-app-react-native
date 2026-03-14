@@ -161,7 +161,7 @@ export const DashboardScreen = ({
         <ScrollView
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingBottom: 100 + insets.bottom },
+            { paddingBottom: 32 },
           ]}
           showsVerticalScrollIndicator={false}
         >
@@ -230,7 +230,7 @@ export const DashboardScreen = ({
             {
               backgroundColor: theme.blue,
               shadowColor: theme.fabShadow,
-              bottom: 94 + insets.bottom,
+              bottom: insets.bottom,
             },
           ]}
         >
@@ -243,13 +243,9 @@ export const DashboardScreen = ({
 };
 
 export default function HomeScreen() {
-  const { mode, toggleTheme } = useThemeMode();
+  const { mode } = useThemeMode();
 
-  return (
-    <DashboardScreen
-      mode={mode}
-    />
-  );
+  return <DashboardScreen mode={mode} />;
 }
 
 
