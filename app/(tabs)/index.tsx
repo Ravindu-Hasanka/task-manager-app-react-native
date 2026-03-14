@@ -110,6 +110,14 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  getTaskDueLabel,
+  getTaskPriorityLabel,
+  getTaskStatusLabel,
+  isTaskCompleted,
+  matchesTaskFilter,
+  matchesTaskSearch,
+} from '@/constants/task-ui';
 import { buildTheme } from '@/constants/theme/build-theme';
 import { ThemeMode } from '@/types/theme-mode';
 import { Filter } from '@/types/task-filter';
@@ -128,23 +136,12 @@ export const DashboardScreen = ({
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
 
-  const filteredTasks = TASKS.filter((task) => {
-    const searchMatch =
-      task.title.toLowerCase().includes(search.toLowerCase()) ||
-      task.subtitle.toLowerCase().includes(search.toLowerCase());
+  const filteredTasks = TASKS.filter(
+    (task) => matchesTaskSearch(task, search) && matchesTaskFilter(task, filter)
+  );
 
-    const filterMatch =
-      filter === 'all'
-        ? true
-        : filter === 'pending'
-        ? task.status === 'Pending'
-        : task.status === 'Completed';
-
-    return searchMatch && filterMatch;
-  });
-
-  const completedCount = TASKS.filter((task) => task.status === 'Completed').length;
-  const pendingCount = TASKS.filter((task) => task.status === 'Pending').length;
+  const completedCount = TASKS.filter(isTaskCompleted).length;
+  const pendingCount = TASKS.length - completedCount;
   const progress = completedCount / TASKS.length;
 
   return (
@@ -165,7 +162,9 @@ export const DashboardScreen = ({
           ]}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={[styles.heading, { color: theme.textPrimary }]}>You have 5 tasks today</Text>
+          <Text style={[styles.heading, { color: theme.textPrimary }]}>
+            You have {pendingCount} pending task{pendingCount === 1 ? '' : 's'}
+          </Text>
 
           <View style={styles.statsRow}>
             <StatCard label="Completed" value={completedCount} valueColor="#10B981" theme={theme} />
@@ -173,7 +172,7 @@ export const DashboardScreen = ({
           </View>
 
           <View style={styles.progressHeader}>
-            <Text style={[styles.progressTitle, { color: theme.blue }]}>Today Progress</Text>
+            <Text style={[styles.progressTitle, { color: theme.blue }]}>Task Progress</Text>
             <Text style={[styles.progressText, { color: theme.textSecondary }]}>
               {completedCount} of {TASKS.length} completed ({Math.round(progress * 100)}%)
             </Text>
@@ -293,12 +292,15 @@ const FilterChip = ({
 );
 
 const TaskCard = ({ task, theme }: { task: Task; theme: ReturnType<typeof buildTheme> }) => {
-  const isCompleted = task.status === 'Completed';
+  const isCompleted = isTaskCompleted(task);
+  const statusLabel = getTaskStatusLabel(task);
+  const dueLabel = getTaskDueLabel(task);
+  const priorityLabel = getTaskPriorityLabel(task);
 
   const priorityStyles =
-    task.priority === 'HIGH PRIORITY'
+    task.priority === 'High'
       ? { bg: theme.highBg, text: theme.highText }
-      : task.priority === 'MEDIUM PRIORITY'
+      : task.priority === 'Medium'
       ? { bg: theme.mediumBg, text: theme.mediumText }
       : { bg: theme.normalBg, text: theme.normalText };
 
@@ -307,9 +309,9 @@ const TaskCard = ({ task, theme }: { task: Task; theme: ReturnType<typeof buildT
       <View style={styles.taskTopRow}>
         <View style={styles.taskMetaRow}>
           <View style={[styles.priorityBadge, { backgroundColor: priorityStyles.bg }]}>
-            <Text style={[styles.priorityText, { color: priorityStyles.text }]}>{task.priority}</Text>
+            <Text style={[styles.priorityText, { color: priorityStyles.text }]}>{priorityLabel}</Text>
           </View>
-          <Text style={[styles.taskTime, { color: theme.textSecondary }]}>{task.time}</Text>
+          <Text style={[styles.taskTime, { color: theme.textSecondary }]}>{dueLabel}</Text>
         </View>
 
         {isCompleted ? (
@@ -336,7 +338,7 @@ const TaskCard = ({ task, theme }: { task: Task; theme: ReturnType<typeof buildT
         {task.title}
       </Text>
 
-      <Text style={[styles.taskSubtitle, { color: theme.textSecondary }]}>{task.subtitle}</Text>
+      <Text style={[styles.taskSubtitle, { color: theme.textSecondary }]}>{task.description}</Text>
 
       <View style={styles.statusRow}>
         <Ionicons
@@ -345,8 +347,9 @@ const TaskCard = ({ task, theme }: { task: Task; theme: ReturnType<typeof buildT
           color={isCompleted ? theme.completed : theme.pending}
         />
         <Text style={[styles.statusText, { color: isCompleted ? theme.completed : theme.pending }]}>
-          {task.status}
+          {statusLabel}
         </Text>
+        <Text style={[styles.categoryText, { color: theme.textSecondary }]}>{task.category}</Text>
       </View>
     </View>
   );
@@ -513,6 +516,11 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  categoryText: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginLeft: 8,
   },
   fab: {
     position: 'absolute',

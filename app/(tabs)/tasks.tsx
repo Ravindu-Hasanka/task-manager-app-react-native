@@ -10,6 +10,14 @@ import {
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import {
+  getTaskDueLabel,
+  getTaskPriorityLabel,
+  getTaskStatusLabel,
+  isTaskCompleted,
+  matchesTaskFilter,
+  matchesTaskSearch,
+} from '@/constants/task-ui';
 import { buildTheme } from '@/constants/theme/build-theme';
 import { useThemeMode } from '@/hooks/use-theme-mode';
 import { TASKS } from '@/mock-data/tasks';
@@ -22,21 +30,9 @@ export default function TasksScreen() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
 
-  const filteredTasks = TASKS.filter((task) => {
-    const searchValue = search.toLowerCase();
-    const searchMatch =
-      task.title.toLowerCase().includes(searchValue) ||
-      task.subtitle.toLowerCase().includes(searchValue);
-
-    const filterMatch =
-      filter === 'all'
-        ? true
-        : filter === 'pending'
-          ? task.status === 'Pending'
-          : task.status === 'Completed';
-
-    return searchMatch && filterMatch;
-  });
+  const filteredTasks = TASKS.filter(
+    (task) => matchesTaskSearch(task, search) && matchesTaskFilter(task, filter)
+  );
 
   return (
     <SafeAreaView edges={['left', 'right']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
@@ -126,12 +122,15 @@ const FilterChip = ({
 );
 
 const TaskCard = ({ task, theme }: { task: Task; theme: ReturnType<typeof buildTheme> }) => {
-  const isCompleted = task.status === 'Completed';
+  const isCompleted = isTaskCompleted(task);
+  const statusLabel = getTaskStatusLabel(task);
+  const dueLabel = getTaskDueLabel(task);
+  const priorityLabel = getTaskPriorityLabel(task);
 
   const priorityStyles =
-    task.priority === 'HIGH PRIORITY'
+    task.priority === 'High'
       ? { bg: theme.highBg, text: theme.highText }
-      : task.priority === 'MEDIUM PRIORITY'
+      : task.priority === 'Medium'
         ? { bg: theme.mediumBg, text: theme.mediumText }
         : { bg: theme.normalBg, text: theme.normalText };
 
@@ -140,9 +139,9 @@ const TaskCard = ({ task, theme }: { task: Task; theme: ReturnType<typeof buildT
       <View style={styles.taskTopRow}>
         <View style={styles.taskMetaRow}>
           <View style={[styles.priorityBadge, { backgroundColor: priorityStyles.bg }]}>
-            <Text style={[styles.priorityText, { color: priorityStyles.text }]}>{task.priority}</Text>
+            <Text style={[styles.priorityText, { color: priorityStyles.text }]}>{priorityLabel}</Text>
           </View>
-          <Text style={[styles.taskTime, { color: theme.textSecondary }]}>{task.time}</Text>
+          <Text style={[styles.taskTime, { color: theme.textSecondary }]}>{dueLabel}</Text>
         </View>
 
         {isCompleted ? (
@@ -169,7 +168,7 @@ const TaskCard = ({ task, theme }: { task: Task; theme: ReturnType<typeof buildT
         {task.title}
       </Text>
 
-      <Text style={[styles.taskSubtitle, { color: theme.textSecondary }]}>{task.subtitle}</Text>
+      <Text style={[styles.taskSubtitle, { color: theme.textSecondary }]}>{task.description}</Text>
 
       <View style={styles.statusRow}>
         <Ionicons
@@ -178,8 +177,9 @@ const TaskCard = ({ task, theme }: { task: Task; theme: ReturnType<typeof buildT
           color={isCompleted ? theme.completed : theme.pending}
         />
         <Text style={[styles.statusText, { color: isCompleted ? theme.completed : theme.pending }]}>
-          {task.status}
+          {statusLabel}
         </Text>
+        <Text style={[styles.categoryText, { color: theme.textSecondary }]}>{task.category}</Text>
       </View>
     </View>
   );
@@ -302,5 +302,10 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  categoryText: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginLeft: 8,
   },
 });

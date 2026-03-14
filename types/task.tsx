@@ -1,8 +1,12 @@
 export type Task = {
   id: string;
-  priority: 'HIGH PRIORITY' | 'MEDIUM PRIORITY' | 'NORMAL';
-  time: string;
   title: string;
-  subtitle: string;
-  status: 'Pending' | 'Completed';
+  description: string;
+  priority: 'High' | 'Medium' | 'Normal';
+  completed: boolean;
+  category: string;
+  dueDate: string;
+  status: 'pending' | 'completed';
+  createdAt: string;
+  updatedAt: string;
 };

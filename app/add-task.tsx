@@ -14,25 +14,63 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { buildTheme } from '@/constants/theme/build-theme';
 import { useThemeMode } from '@/hooks/use-theme-mode';
+import { TASKS } from '@/mock-data/tasks';
+import { Task } from '@/types/task';
 
-const PRIORITIES = ['High Priority', 'Medium Priority', 'Normal Priority'] as const;
+const PRIORITIES = ['High', 'Medium', 'Normal'] as const;
 
 export default function AddTaskScreen() {
   const { mode } = useThemeMode();
   const theme = useMemo(() => buildTheme(mode), [mode]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState<string>('');
+  const [priority, setPriority] = useState<Task['priority'] | ''>('');
+  const [category, setCategory] = useState('');
+  const [dueDate, setDueDate] = useState('');
   const [showPriorityOptions, setShowPriorityOptions] = useState(false);
-  const [showPriorityError, setShowPriorityError] = useState(true);
+  const [showPriorityError, setShowPriorityError] = useState(false);
+  const [formError, setFormError] = useState('');
 
   const handleSave = () => {
-    if (!priority) {
-      setShowPriorityError(true);
+    if (!title.trim()) {
+      setFormError('Title is required');
       return;
     }
 
-    router.back();
+    if (!priority) {
+      setShowPriorityError(true);
+      setFormError('Priority is required');
+      return;
+    }
+
+    if (!category.trim()) {
+      setFormError('Category is required');
+      return;
+    }
+
+    const parsedDueDate = new Date(dueDate);
+
+    if (!dueDate.trim() || Number.isNaN(parsedDueDate.getTime())) {
+      setFormError('Due date must be a valid ISO date');
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const newTask: Task = {
+      id: Date.now().toString(),
+      title: title.trim(),
+      description: description.trim(),
+      priority,
+      completed: false,
+      category: category.trim(),
+      dueDate: parsedDueDate.toISOString(),
+      status: 'pending',
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    TASKS.unshift(newTask);
+    router.replace('/tasks');
   };
 
   return (
@@ -86,6 +124,45 @@ export default function AddTaskScreen() {
           ]}
         />
 
+        <FieldLabel label="Category" color={theme.textPrimary} />
+        <TextInput
+          value={category}
+          onChangeText={(value) => {
+            setCategory(value);
+            setFormError('');
+          }}
+          placeholder="Enter task category"
+          placeholderTextColor={theme.textSecondary}
+          style={[
+            styles.input,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.cardBorder,
+              color: theme.textPrimary,
+            },
+          ]}
+        />
+
+        <FieldLabel label="Due Date" color={theme.textPrimary} />
+        <TextInput
+          value={dueDate}
+          onChangeText={(value) => {
+            setDueDate(value);
+            setFormError('');
+          }}
+          placeholder="2025-12-22T09:00:00.000Z"
+          placeholderTextColor={theme.textSecondary}
+          autoCapitalize="none"
+          style={[
+            styles.input,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.cardBorder,
+              color: theme.textPrimary,
+            },
+          ]}
+        />
+
         <FieldLabel label="Priority" color={theme.textPrimary} />
         <Pressable
           onPress={() => setShowPriorityOptions((current) => !current)}
@@ -117,6 +194,7 @@ export default function AddTaskScreen() {
                   setPriority(item);
                   setShowPriorityOptions(false);
                   setShowPriorityError(false);
+                  setFormError('');
                 }}
                 style={styles.priorityOption}
               >
@@ -130,6 +208,13 @@ export default function AddTaskScreen() {
           <View style={styles.errorRow}>
             <Ionicons name="alert-circle-outline" size={16} color="#FF4D4F" />
             <Text style={styles.errorText}>Priority is required</Text>
+          </View>
+        )}
+
+        {formError.length > 0 && !showPriorityError && (
+          <View style={styles.errorRow}>
+            <Ionicons name="alert-circle-outline" size={16} color="#FF4D4F" />
+            <Text style={styles.errorText}>{formError}</Text>
           </View>
         )}
       </ScrollView>
