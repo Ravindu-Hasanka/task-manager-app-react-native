@@ -98,6 +98,7 @@
 // });
 
 import React, { useMemo, useState } from 'react';
+import { useRouter } from 'expo-router';
 import {
   View,
   Text,
@@ -113,19 +114,17 @@ import { buildTheme } from '@/constants/theme/build-theme';
 import { ThemeMode } from '@/types/theme-mode';
 import { Filter } from '@/types/task-filter';
 import { Task } from '@/types/task';
-import { Header } from '@/components/header';
 import { TASKS } from '@/mock-data/tasks';
 import { useThemeMode } from '@/hooks/use-theme-mode';
 
 export const DashboardScreen = ({
   mode,
-  onThemeToggle,
 }: {
   mode: ThemeMode;
-  onThemeToggle: () => void;
 }) => {
   const theme = useMemo(() => buildTheme(mode), [mode]);
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
 
@@ -150,7 +149,7 @@ export const DashboardScreen = ({
 
   return (
     <SafeAreaView
-      edges={['top', 'left', 'right']}
+      edges={['left', 'right']}
       style={[styles.safeArea, { backgroundColor: theme.background }]}
     >
       <StatusBar
@@ -166,8 +165,6 @@ export const DashboardScreen = ({
           ]}
           showsVerticalScrollIndicator={false}
         >
-          <Header theme={theme} onThemeToggle={onThemeToggle} />
-
           <Text style={[styles.heading, { color: theme.textPrimary }]}>You have 5 tasks today</Text>
 
           <View style={styles.statsRow}>
@@ -227,6 +224,7 @@ export const DashboardScreen = ({
         </ScrollView>
 
         <TouchableOpacity
+          onPress={() => router.push('/add-task')}
           style={[
             styles.fab,
             {
@@ -250,7 +248,6 @@ export default function HomeScreen() {
   return (
     <DashboardScreen
       mode={mode}
-      onThemeToggle={toggleTheme}
     />
   );
 }
@@ -370,7 +367,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 24,
-    paddingTop: 20,
+    paddingTop: 8,
   },
   heading: {
     fontSize: 22,
