@@ -7,12 +7,15 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  RefreshControl,
 } from 'react-native';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Swipeable } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { TaskLoadErrorState } from '@/components/task-load-error-state';
 import { TaskSearchEmptyState } from '@/components/task-search-empty-state';
+import { TaskSyncStatus } from '@/components/task-sync-status';
 import {
   getTaskDueLabel,
   getTaskPriorityLabel,
@@ -22,6 +25,7 @@ import {
   matchesTaskSearch,
 } from '@/constants/task-ui';
 import { buildTheme } from '@/constants/theme/build-theme';
+import { useTaskConnection } from '@/hooks/use-task-connection';
 import { useThemeMode } from '@/hooks/use-theme-mode';
 import { TASKS } from '@/mock-data/tasks';
 import { Filter } from '@/types/task-filter';
@@ -31,6 +35,7 @@ export default function TasksScreen() {
   const { mode } = useThemeMode();
   const theme = useMemo(() => buildTheme(mode), [mode]);
   const router = useRouter();
+  const { goOfflineMode, initialLoadFailed, isRefreshing, refreshTasks, retryConnection } = useTaskConnection();
   const [, setTaskVersion] = useState(0);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
@@ -38,6 +43,18 @@ export default function TasksScreen() {
   const filteredTasks = TASKS.filter(
     (task) => matchesTaskSearch(task, search) && matchesTaskFilter(task, filter)
   );
+
+  if (initialLoadFailed) {
+    return (
+      <SafeAreaView edges={['left', 'right']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
+        <TaskLoadErrorState
+          theme={theme}
+          onRetry={() => void retryConnection()}
+          onOfflineMode={goOfflineMode}
+        />
+      </SafeAreaView>
+    );
+  }
 
   const handleDeleteTask = (taskId: string) => {
     const taskIndex = TASKS.findIndex((task) => task.id === taskId);
@@ -65,6 +82,14 @@ export default function TasksScreen() {
     <SafeAreaView edges={['left', 'right']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScrollView
         contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => void refreshTasks()}
+            tintColor={theme.blue}
+            colors={[theme.blue]}
+          />
+        }
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -114,6 +139,8 @@ export default function TasksScreen() {
           </Text>
           <Text style={[styles.listSubtitle, { color: theme.textSecondary }]}>Manage your daily workload</Text>
         </View>
+
+        {isRefreshing && <TaskSyncStatus theme={theme} />}
 
         {filteredTasks.length === 0 && search.trim().length > 0 ? (
           <TaskSearchEmptyState

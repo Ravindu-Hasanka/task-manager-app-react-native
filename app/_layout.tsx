@@ -5,6 +5,7 @@ import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { TaskConnectionProvider } from '@/hooks/use-task-connection';
 import { ThemeModeProvider } from '@/hooks/use-theme-mode';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -18,18 +19,20 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <ThemeModeProvider>
-          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-            <Stack>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="add-task" options={{ headerShown: false }} />
-              <Stack.Screen name="task/[id]" options={{ headerShown: false }} />
-              <Stack.Screen name="task/[id]/edit" options={{ headerShown: false }} />
-              <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-            </Stack>
-            <StatusBar style="auto" />
-          </ThemeProvider>
-        </ThemeModeProvider>
+        <TaskConnectionProvider>
+          <ThemeModeProvider>
+            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+              <Stack>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="add-task" options={{ headerShown: false }} />
+                <Stack.Screen name="task/[id]" options={{ headerShown: false }} />
+                <Stack.Screen name="task/[id]/edit" options={{ headerShown: false }} />
+                <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+              </Stack>
+              <StatusBar style="auto" />
+            </ThemeProvider>
+          </ThemeModeProvider>
+        </TaskConnectionProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

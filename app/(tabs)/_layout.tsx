@@ -5,6 +5,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { BottomNav } from '@/components/bottom-navbar';
 import { buildTheme } from '@/constants/theme/build-theme';
+import { OfflineBanner } from '@/components/offline-banner';
+import { useTaskConnection } from '@/hooks/use-task-connection';
 import { useThemeMode } from '@/hooks/use-theme-mode';
 import { Header } from '@/components/header';
 
@@ -18,6 +20,7 @@ export default function TabLayout() {
 
 function TabsShell() {
   const { mode, toggleTheme } = useThemeMode();
+  const { initialLoadFailed, retryConnection, showOfflineBanner } = useTaskConnection();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const theme = buildTheme(mode);
@@ -37,6 +40,10 @@ function TabsShell() {
           <Header theme={theme} onThemeToggle={toggleTheme} />
         )}
       </View>
+
+      {showOfflineBanner && !initialLoadFailed && (
+        <OfflineBanner theme={theme} onRetry={() => void retryConnection()} />
+      )}
 
       <View style={styles.tabsContainer}>
         <Tabs

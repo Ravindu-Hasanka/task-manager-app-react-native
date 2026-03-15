@@ -107,11 +107,14 @@ import {
   TouchableOpacity,
   ScrollView,
   StatusBar,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { Swipeable } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { TaskLoadErrorState } from '@/components/task-load-error-state';
 import { TaskSearchEmptyState } from '@/components/task-search-empty-state';
+import { TaskSyncStatus } from '@/components/task-sync-status';
 import {
   getTaskDueLabel,
   getTaskPriorityLabel,
@@ -121,6 +124,7 @@ import {
   matchesTaskSearch,
 } from '@/constants/task-ui';
 import { buildTheme } from '@/constants/theme/build-theme';
+import { useTaskConnection } from '@/hooks/use-task-connection';
 import { ThemeMode } from '@/types/theme-mode';
 import { Filter } from '@/types/task-filter';
 import { Task } from '@/types/task';
@@ -135,6 +139,7 @@ export const DashboardScreen = ({
   const theme = useMemo(() => buildTheme(mode), [mode]);
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { goOfflineMode, initialLoadFailed, isRefreshing, refreshTasks, retryConnection } = useTaskConnection();
   const [, setTaskVersion] = useState(0);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
@@ -146,6 +151,18 @@ export const DashboardScreen = ({
   const completedCount = TASKS.filter(isTaskCompleted).length;
   const pendingCount = TASKS.length - completedCount;
   const progress = completedCount / TASKS.length;
+
+  if (initialLoadFailed) {
+    return (
+      <SafeAreaView edges={['left', 'right']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
+        <TaskLoadErrorState
+          theme={theme}
+          onRetry={() => void retryConnection()}
+          onOfflineMode={goOfflineMode}
+        />
+      </SafeAreaView>
+    );
+  }
 
   const handleDeleteTask = (taskId: string) => {
     const taskIndex = TASKS.findIndex((task) => task.id === taskId);
@@ -185,6 +202,14 @@ export const DashboardScreen = ({
             styles.scrollContent,
             { paddingBottom: 32 },
           ]}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={() => void refreshTasks()}
+              tintColor={theme.blue}
+              colors={[theme.blue]}
+            />
+          }
           showsVerticalScrollIndicator={false}
         >
           <Text style={[styles.heading, { color: theme.textPrimary }]}>
@@ -241,6 +266,8 @@ export const DashboardScreen = ({
               theme={theme}
             />
           </View>
+
+          {isRefreshing && <TaskSyncStatus theme={theme} />}
 
           {filteredTasks.length === 0 && search.trim().length > 0 ? (
             <TaskSearchEmptyState
