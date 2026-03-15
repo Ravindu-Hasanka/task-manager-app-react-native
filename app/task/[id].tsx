@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -21,6 +21,7 @@ export default function TaskDetailsScreen() {
   const theme = useMemo(() => buildTheme(mode), [mode]);
   const task = TASKS.find((item) => item.id === id);
   const [completed, setCompleted] = useState(task ? isTaskCompleted(task) : false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   if (!task) {
     return (
@@ -182,11 +183,71 @@ export default function TaskDetailsScreen() {
           <Text style={[styles.editButtonText, { color: theme.blue }]}>Edit Task</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.footerButton, styles.deleteButton]} onPress={handleDelete}>
+        <TouchableOpacity
+          style={[styles.footerButton, styles.deleteButton]}
+          onPress={() => setShowDeleteConfirm(true)}
+        >
           <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
           <Text style={styles.deleteButtonText}>Delete Task</Text>
         </TouchableOpacity>
       </View>
+
+      <Modal
+        animationType="fade"
+        transparent
+        visible={showDeleteConfirm}
+        onRequestClose={() => setShowDeleteConfirm(false)}
+      >
+        <Pressable
+          onPress={() => setShowDeleteConfirm(false)}
+          style={[
+            styles.modalOverlay,
+            { backgroundColor: mode === 'dark' ? 'rgba(2, 6, 23, 0.78)' : 'rgba(148, 163, 184, 0.28)' },
+          ]}
+        >
+          <Pressable
+            onPress={() => undefined}
+            style={[
+              styles.confirmSheet,
+              {
+                backgroundColor: mode === 'dark' ? '#111827' : '#EEF3FF',
+                borderTopColor: theme.cardBorder,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.confirmIconWrap,
+                { backgroundColor: mode === 'dark' ? '#5A2430' : '#FFDADF' },
+              ]}
+            >
+              <Ionicons name="trash-outline" size={28} color="#EF4444" />
+            </View>
+
+            <Text style={[styles.confirmTitle, { color: theme.textPrimary }]}>Delete task?</Text>
+            <Text style={[styles.confirmText, { color: theme.textSecondary }]}>
+              Are you sure you want to delete{' '}
+              <Text style={{ color: theme.textPrimary }}>&quot;{currentTask.title}&quot;</Text>? This
+              action cannot be undone and will remove all details for this task.
+            </Text>
+
+            <TouchableOpacity style={[styles.confirmDeleteButton, styles.deleteButton]} onPress={handleDelete}>
+              <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
+              <Text style={styles.deleteButtonText}>Delete Task</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setShowDeleteConfirm(false)}
+              style={[
+                styles.confirmCancelButton,
+                { backgroundColor: mode === 'dark' ? '#273246' : theme.blue },
+              ]}
+            >
+              <Text style={styles.confirmCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -338,5 +399,60 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 24,
     textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  confirmSheet: {
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    borderTopWidth: 1,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 28,
+    alignItems: 'center',
+  },
+  confirmIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
+  },
+  confirmTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 10,
+  },
+  confirmText: {
+    textAlign: 'center',
+    fontSize: 15,
+    lineHeight: 28,
+    fontWeight: '500',
+    marginBottom: 22,
+  },
+  confirmDeleteButton: {
+    width: '100%',
+    height: 52,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  confirmCancelButton: {
+    width: '100%',
+    height: 52,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmCancelText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
   },
 });
