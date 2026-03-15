@@ -109,6 +109,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import { Swipeable } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   getTaskDueLabel,
@@ -133,6 +134,7 @@ export const DashboardScreen = ({
   const theme = useMemo(() => buildTheme(mode), [mode]);
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const [, setTaskVersion] = useState(0);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
 
@@ -143,6 +145,28 @@ export const DashboardScreen = ({
   const completedCount = TASKS.filter(isTaskCompleted).length;
   const pendingCount = TASKS.length - completedCount;
   const progress = completedCount / TASKS.length;
+
+  const handleDeleteTask = (taskId: string) => {
+    const taskIndex = TASKS.findIndex((task) => task.id === taskId);
+
+    if (taskIndex !== -1) {
+      TASKS.splice(taskIndex, 1);
+      setTaskVersion((current) => current + 1);
+    }
+  };
+
+  const handleCompleteTask = (taskId: string) => {
+    const task = TASKS.find((item) => item.id === taskId);
+
+    if (!task) {
+      return;
+    }
+
+    task.completed = true;
+    task.status = 'completed';
+    task.updatedAt = new Date().toISOString();
+    setTaskVersion((current) => current + 1);
+  };
 
   return (
     <SafeAreaView
@@ -222,6 +246,8 @@ export const DashboardScreen = ({
               key={task.id}
               task={task}
               theme={theme}
+              onDelete={() => handleDeleteTask(task.id)}
+              onComplete={() => handleCompleteTask(task.id)}
               onPress={() =>
                 router.push({
                   pathname: '/task/[id]',
@@ -304,12 +330,17 @@ const FilterChip = ({
 const TaskCard = ({
   task,
   theme,
+  onDelete,
+  onComplete,
   onPress,
 }: {
   task: Task;
   theme: ReturnType<typeof buildTheme>;
+  onDelete: () => void;
+  onComplete: () => void;
   onPress: () => void;
 }) => {
+  const [openedSide, setOpenedSide] = useState<'left' | 'right' | null>(null);
   const isCompleted = isTaskCompleted(task);
   const statusLabel = getTaskStatusLabel(task);
   const dueLabel = getTaskDueLabel(task);
@@ -323,57 +354,99 @@ const TaskCard = ({
       : { bg: theme.normalBg, text: theme.normalText };
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.92}
-      onPress={onPress}
-      style={[styles.taskCard, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}
-    >
-      <View style={styles.taskTopRow}>
-        <View style={styles.taskMetaRow}>
-          <View style={[styles.priorityBadge, { backgroundColor: priorityStyles.bg }]}>
-            <Text style={[styles.priorityText, { color: priorityStyles.text }]}>{priorityLabel}</Text>
-          </View>
-          <Text style={[styles.taskTime, { color: theme.textSecondary }]}>{dueLabel}</Text>
-        </View>
-
-        {isCompleted ? (
-          <View style={[styles.completedIconBox, { backgroundColor: theme.successChip }]}>
-            <MaterialCommunityIcons name="check-all" size={22} color={theme.completed} />
-          </View>
-        ) : (
-          <TouchableOpacity style={[styles.menuButton, { borderColor: theme.chipBorder }]}>
-            <Feather name="more-vertical" size={18} color={theme.textSecondary} />
+    <View style={styles.swipeContainer}>
+      <Swipeable
+        overshootLeft={false}
+        overshootRight={false}
+        onSwipeableWillOpen={(direction) => setOpenedSide(direction)}
+        onSwipeableWillClose={() => setOpenedSide(null)}
+        renderLeftActions={() =>
+          !isCompleted ? (
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={onComplete}
+              style={[styles.swipeAction, styles.completeAction, styles.leftSwipeAction]}
+            >
+              <Ionicons name="checkmark-done-outline" size={24} color="#FFFFFF" />
+              <Text style={styles.swipeActionText}>DONE</Text>
+            </TouchableOpacity>
+          ) : null
+        }
+        renderRightActions={() => (
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={onDelete}
+            style={[styles.swipeAction, styles.deleteAction, styles.rightSwipeAction]}
+          >
+            <Ionicons name="trash-outline" size={24} color="#FFFFFF" />
+            <Text style={styles.swipeActionText}>DELETE</Text>
           </TouchableOpacity>
         )}
-      </View>
-
-      <Text
-        style={[
-          styles.taskTitle,
-          {
-            color: theme.textPrimary,
-            textDecorationLine: isCompleted ? 'line-through' : 'none',
-            opacity: isCompleted ? 0.6 : 1,
-          },
-        ]}
       >
-        {task.title}
-      </Text>
+        <TouchableOpacity
+          activeOpacity={0.92}
+          onPress={onPress}
+          style={[
+            styles.taskCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.cardBorder,
+            },
+            openedSide === 'left'
+              ? styles.cardOpenToLeft
+              : openedSide === 'right'
+                ? styles.cardOpenToRight
+                : null,
+          ]}
+        >
+          <View style={styles.taskTopRow}>
+            <View style={styles.taskMetaRow}>
+              <View style={[styles.priorityBadge, { backgroundColor: priorityStyles.bg }]}>
+                <Text style={[styles.priorityText, { color: priorityStyles.text }]}>{priorityLabel}</Text>
+              </View>
+              <Text style={[styles.taskTime, { color: theme.textSecondary }]}>{dueLabel}</Text>
+            </View>
 
-      <Text style={[styles.taskSubtitle, { color: theme.textSecondary }]}>{task.description}</Text>
+            {isCompleted ? (
+              <View style={[styles.completedIconBox, { backgroundColor: theme.successChip }]}>
+                <MaterialCommunityIcons name="check-all" size={22} color={theme.completed} />
+              </View>
+            ) : (
+              <TouchableOpacity style={[styles.menuButton, { borderColor: theme.chipBorder }]}>
+                <Feather name="more-vertical" size={18} color={theme.textSecondary} />
+              </TouchableOpacity>
+            )}
+          </View>
 
-      <View style={styles.statusRow}>
-        <Ionicons
-          name={isCompleted ? 'checkmark-circle-outline' : 'time-outline'}
-          size={14}
-          color={isCompleted ? theme.completed : theme.pending}
-        />
-        <Text style={[styles.statusText, { color: isCompleted ? theme.completed : theme.pending }]}>
-          {statusLabel}
-        </Text>
-        <Text style={[styles.categoryText, { color: theme.textSecondary }]}>{task.category}</Text>
-      </View>
-    </TouchableOpacity>
+          <Text
+            style={[
+              styles.taskTitle,
+              {
+                color: theme.textPrimary,
+                textDecorationLine: isCompleted ? 'line-through' : 'none',
+                opacity: isCompleted ? 0.6 : 1,
+              },
+            ]}
+          >
+            {task.title}
+          </Text>
+
+          <Text style={[styles.taskSubtitle, { color: theme.textSecondary }]}>{task.description}</Text>
+
+          <View style={styles.statusRow}>
+            <Ionicons
+              name={isCompleted ? 'checkmark-circle-outline' : 'time-outline'}
+              size={14}
+              color={isCompleted ? theme.completed : theme.pending}
+            />
+            <Text style={[styles.statusText, { color: isCompleted ? theme.completed : theme.pending }]}>
+              {statusLabel}
+            </Text>
+            <Text style={[styles.categoryText, { color: theme.textSecondary }]}>{task.category}</Text>
+          </View>
+        </TouchableOpacity>
+      </Swipeable>
+    </View>
   );
 };
 
@@ -474,11 +547,49 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
+  swipeContainer: {
+    marginBottom: 18,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  swipeAction: {
+    width: 92,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  leftSwipeAction: {
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
+  },
+  rightSwipeAction: {
+    borderTopRightRadius: 16,
+    borderBottomRightRadius: 16,
+  },
+  completeAction: {
+    backgroundColor: '#1FBA84',
+  },
+  deleteAction: {
+    backgroundColor: '#ED2024',
+  },
+  swipeActionText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
   taskCard: {
     borderRadius: 16,
     borderWidth: 1,
     padding: 20,
-    marginBottom: 18,
+  },
+  cardOpenToLeft: {
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
+  },
+  cardOpenToRight: {
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 0,
   },
   taskTopRow: {
     flexDirection: 'row',
