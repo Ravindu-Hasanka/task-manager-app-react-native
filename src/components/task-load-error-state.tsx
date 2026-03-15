@@ -2,18 +2,16 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { buildTheme } from '@/constants/theme/build-theme';
+import { buildTheme } from '../constants/theme/build-theme';
 
-export function TaskSearchEmptyState({
-  query,
+export function TaskLoadErrorState({
   theme,
-  onClearSearch,
-  onBrowseAll,
+  onRetry,
+  onOfflineMode,
 }: {
-  query: string;
   theme: ReturnType<typeof buildTheme>;
-  onClearSearch: () => void;
-  onBrowseAll: () => void;
+  onRetry: () => void;
+  onOfflineMode: () => void;
 }) {
   const dark = theme.mode === 'dark';
 
@@ -28,7 +26,7 @@ export function TaskSearchEmptyState({
           },
         ]}
       >
-        <Ionicons name="document-text-outline" size={60} color={dark ? '#2E63D7' : '#6C95EE'} />
+        <Ionicons name="cloud-offline-outline" size={58} color={dark ? '#2E63D7' : '#2A61DA'} />
 
         <View
           style={[
@@ -39,34 +37,21 @@ export function TaskSearchEmptyState({
             },
           ]}
         >
-          <Ionicons name="search-outline" size={18} color="#FF4D4F" />
-          <Ionicons name="close-outline" size={14} color="#FF4D4F" style={styles.badgeCloseIcon} />
+          <Ionicons name="briefcase-outline" size={18} color="#2A61DA" />
         </View>
       </View>
 
-      <Text style={[styles.title, { color: theme.textPrimary }]}>No matching tasks found</Text>
+      <Text style={[styles.title, { color: theme.textPrimary }]}>Unable to load tasks</Text>
       <Text style={[styles.description, { color: theme.textSecondary }]}>
-        We couldn&apos;t find any results for{' '}
-        <Text style={[styles.queryText, { color: theme.textPrimary }]}>&quot;{query}&quot;</Text>. Try a
-        different search term or check your spelling.
+        Please check your internet connection and try again.
       </Text>
 
-      <TouchableOpacity onPress={onClearSearch} style={[styles.primaryButton, { backgroundColor: theme.blue }]}>
-        <Ionicons name="close-outline" size={20} color="#FFFFFF" />
-        <Text style={styles.primaryButtonText}>Clear Search</Text>
+      <TouchableOpacity onPress={onRetry} style={[styles.primaryButton, { backgroundColor: theme.blue }]}>
+        <Text style={styles.primaryButtonText}>Retry Connection</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        onPress={onBrowseAll}
-        style={[
-          styles.secondaryButton,
-          {
-            backgroundColor: dark ? '#233046' : '#EEF3FF',
-            borderColor: theme.cardBorder,
-          },
-        ]}
-      >
-        <Text style={[styles.secondaryButtonText, { color: theme.textPrimary }]}>Browse All Tasks</Text>
+      <TouchableOpacity onPress={onOfflineMode} style={styles.secondaryButton}>
+        <Text style={[styles.secondaryButtonText, { color: theme.textSecondary }]}>Go to Offline Mode</Text>
       </TouchableOpacity>
     </View>
   );
@@ -74,10 +59,10 @@ export function TaskSearchEmptyState({
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 48,
-    paddingBottom: 40,
+    paddingHorizontal: 30,
   },
   illustrationCircle: {
     width: 132,
@@ -99,36 +84,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badgeCloseIcon: {
-    position: 'absolute',
-    right: 5,
-    bottom: 5,
-  },
   title: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '800',
-    marginBottom: 10,
+    textAlign: 'center',
+    marginBottom: 12,
   },
   description: {
+    textAlign: 'center',
     fontSize: 15,
     lineHeight: 28,
     fontWeight: '500',
-    textAlign: 'center',
-    marginBottom: 28,
-    paddingHorizontal: 12,
-  },
-  queryText: {
-    fontWeight: '700',
+    marginBottom: 30,
   },
   primaryButton: {
     width: '100%',
     height: 56,
     borderRadius: 14,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    marginBottom: 14,
+    marginBottom: 16,
     shadowColor: '#2563EB',
     shadowOpacity: 0.2,
     shadowRadius: 12,
@@ -141,15 +116,10 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   secondaryButton: {
-    width: '100%',
-    height: 56,
-    borderRadius: 14,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: 8,
   },
   secondaryButtonText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 });

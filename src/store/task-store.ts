@@ -6,9 +6,9 @@ import {
   getTaskById,
   getTasks,
   updateTask as updateTaskRequest,
-} from '@/lib/api/tasks';
-import { TASKS as seedTasks } from '@/mock-data/tasks';
-import { CreateTaskInput, Task } from '@/types/task';
+} from '../api/todoService';
+import { TASKS as seedTasks } from '../store/seed-tasks';
+import { CreateTaskInput, Task } from '../types/task';
 
 type TaskStore = {
   createTaskError: string | null;
@@ -210,3 +210,4 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     }
   },
 }));
+

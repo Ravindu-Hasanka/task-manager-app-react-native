@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { buildTheme } from '@/constants/theme/build-theme';
+import { buildTheme } from '../constants/theme/build-theme';
 
 export function OfflineBanner({
   theme,

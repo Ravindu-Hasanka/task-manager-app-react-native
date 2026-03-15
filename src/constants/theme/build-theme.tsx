@@ -1,4 +1,4 @@
-import { ThemeMode } from '@/types/theme-mode';
+import { ThemeMode } from '../../types/theme-mode';
 
 export const buildTheme = (mode: ThemeMode) => {
   const dark = mode === 'dark';

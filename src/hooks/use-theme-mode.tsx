@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState } from 'react';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { ThemeMode } from '@/types/theme-mode';
+import { useColorScheme } from '../hooks/use-color-scheme';
+import { ThemeMode } from '../types/theme-mode';
 
 type ThemeModeContextValue = {
   mode: ThemeMode;

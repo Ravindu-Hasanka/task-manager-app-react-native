@@ -5,9 +5,9 @@ import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { TaskConnectionProvider } from '@/hooks/use-task-connection';
-import { ThemeModeProvider } from '@/hooks/use-theme-mode';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { TaskConnectionProvider } from '../src/hooks/use-task-connection';
+import { ThemeModeProvider } from '../src/hooks/use-theme-mode';
+import { useColorScheme } from '../src/hooks/use-color-scheme';
 
 export const unstable_settings = {
   anchor: '(tabs)',

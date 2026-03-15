@@ -3,7 +3,7 @@ import { router, usePathname } from 'expo-router';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { buildTheme } from '@/constants/theme/build-theme';
+import { buildTheme } from '../constants/theme/build-theme';
 
 export const BottomNav = ({ theme }: { theme: ReturnType<typeof buildTheme> }) => {
   const insets = useSafeAreaInsets();

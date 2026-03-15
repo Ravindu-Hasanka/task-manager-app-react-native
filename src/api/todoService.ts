@@ -1,5 +1,5 @@
-import { apiClient } from '@/lib/api/client';
-import { CreateTaskInput, Task } from '@/types/task';
+import { apiClient } from '../api/axiosInstance';
+import { CreateTaskInput, Task } from '../types/task';
 
 export async function getTasks() {
   const response = await apiClient.get<Task[]>('/todo');
@@ -48,3 +48,4 @@ export async function updateTask(task: Task) {
 export async function deleteTask(id: string) {
   await apiClient.delete(`/todo/${id}`);
 }
+

@@ -6,14 +6,14 @@ import DateTimePicker, {
 import { Modal, Platform, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { buildTheme } from '@/constants/theme/build-theme';
+import { buildTheme } from '../constants/theme/build-theme';
 import {
   formatDueDateLabel,
   formatDueTimeLabel,
   mergeDatePart,
   mergeTimePart,
   parseDueDate,
-} from '@/components/due-date-input.shared';
+} from '../components/due-date-input.shared';
 
 type DueDateInputProps = {
   value: string;

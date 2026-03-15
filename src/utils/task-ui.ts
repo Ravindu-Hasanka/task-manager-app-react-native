@@ -1,5 +1,5 @@
-import { Filter } from '@/types/task-filter';
-import { Task } from '@/types/task';
+import { Filter } from '../types/task-filter';
+import { Task } from '../types/task';
 
 export function isTaskCompleted(task: Task) {
   return task.completed || task.status === 'completed';
