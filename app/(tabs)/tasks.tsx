@@ -64,7 +64,7 @@ export default function TasksScreen() {
   }
 
   const handleDeleteTask = (taskId: string) => {
-    deleteTask(taskId);
+    void deleteTask(taskId);
   };
 
   const handleCompleteTask = (taskId: string) => {

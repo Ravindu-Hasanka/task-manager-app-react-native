@@ -53,7 +53,7 @@ function TabsShell() {
             headerShown: false,
             sceneStyle: {
               backgroundColor: theme.background,
-              paddingBottom: 74 + insets.bottom,
+              paddingBottom: 0,
             },
           }}>
           <Tabs.Screen name="index" />

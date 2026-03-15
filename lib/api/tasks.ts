@@ -3,7 +3,6 @@ import { CreateTaskInput, Task } from '@/types/task';
 
 export async function getTasks() {
   const response = await apiClient.get<Task[]>('/todo');
-  console.log('Fetched tasks:', response.data);
   return response.data;
 }
 
@@ -44,4 +43,8 @@ export async function updateTask(task: Task) {
   });
 
   return response.data;
+}
+
+export async function deleteTask(id: string) {
+  await apiClient.delete(`/todo/${id}`);
 }

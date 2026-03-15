@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import {
   createTask as createTaskRequest,
+  deleteTask as deleteTaskRequest,
   getTaskById,
   getTasks,
   updateTask as updateTaskRequest,
@@ -15,13 +16,15 @@ type TaskStore = {
   isCreatingTask: boolean;
   isFetchingList: boolean;
   isFetchingTask: boolean;
+  isDeletingTask: boolean;
   isUpdatingTask: boolean;
   selectedTaskId: string | null;
   tasks: Task[];
+  deleteTaskError: string | null;
   updateTaskError: string | null;
   addTask: (task: CreateTaskInput) => Promise<Task>;
   completeTask: (id: string, completed?: boolean) => Promise<Task | undefined>;
-  deleteTask: (id: string) => void;
+  deleteTask: (id: string) => Promise<void>;
   fetchTaskById: (id: string) => Promise<Task | undefined>;
   fetchTasks: () => Promise<void>;
   updateTask: (task: Task) => Promise<Task>;
@@ -41,11 +44,13 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   createTaskError: null,
   error: null,
   isCreatingTask: false,
+  isDeletingTask: false,
   isFetchingList: false,
   isFetchingTask: false,
   isUpdatingTask: false,
   selectedTaskId: null,
   tasks: seedTasks,
+  deleteTaskError: null,
   updateTaskError: null,
   addTask: async (task) => {
     set({
@@ -109,11 +114,30 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       throw error instanceof Error ? error : new Error(message);
     }
   },
-  deleteTask: (id) => {
-    set((state) => ({
-      tasks: state.tasks.filter((task) => task.id !== id),
-      selectedTaskId: state.selectedTaskId === id ? null : state.selectedTaskId,
-    }));
+  deleteTask: async (id) => {
+    set({
+      deleteTaskError: null,
+      isDeletingTask: true,
+    });
+
+    try {
+      await deleteTaskRequest(id);
+
+      set((state) => ({
+        isDeletingTask: false,
+        tasks: state.tasks.filter((task) => task.id !== id),
+        selectedTaskId: state.selectedTaskId === id ? null : state.selectedTaskId,
+      }));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to delete task';
+
+      set({
+        deleteTaskError: message,
+        isDeletingTask: false,
+      });
+
+      throw error instanceof Error ? error : new Error(message);
+    }
   },
   fetchTaskById: async (id) => {
     set({

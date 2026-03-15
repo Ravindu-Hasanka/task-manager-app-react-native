@@ -172,7 +172,7 @@ export const DashboardScreen = ({
   }
 
   const handleDeleteTask = (taskId: string) => {
-    deleteTask(taskId);
+    void deleteTask(taskId);
   };
 
   const handleCompleteTask = (taskId: string) => {

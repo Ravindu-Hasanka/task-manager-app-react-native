@@ -21,6 +21,7 @@ export default function TaskDetailsScreen() {
   const theme = useMemo(() => buildTheme(mode), [mode]);
   const completeTask = useTaskStore((state) => state.completeTask);
   const deleteTask = useTaskStore((state) => state.deleteTask);
+  const isDeletingTask = useTaskStore((state) => state.isDeletingTask);
   const fetchTaskById = useTaskStore((state) => state.fetchTaskById);
   const isFetchingTask = useTaskStore((state) => state.isFetchingTask);
   const isUpdatingTask = useTaskStore((state) => state.isUpdatingTask);
@@ -112,8 +113,15 @@ export default function TaskDetailsScreen() {
   };
 
   const handleDelete = () => {
-    deleteTask(task.id);
-    router.replace('/tasks');
+    void (async () => {
+      try {
+        await deleteTask(task.id);
+        router.replace('/tasks');
+      } catch (error) {
+        setStatusError(error instanceof Error ? error.message : 'Unable to delete task');
+        setShowDeleteConfirm(false);
+      }
+    })();
   };
 
   return (
@@ -281,9 +289,17 @@ export default function TaskDetailsScreen() {
               action cannot be undone and will remove all details for this task.
             </Text>
 
-            <TouchableOpacity style={[styles.confirmDeleteButton, styles.deleteButton]} onPress={handleDelete}>
+            <TouchableOpacity
+              disabled={isDeletingTask}
+              style={[
+                styles.confirmDeleteButton,
+                styles.deleteButton,
+                { opacity: isDeletingTask ? 0.72 : 1 },
+              ]}
+              onPress={handleDelete}
+            >
               <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
-              <Text style={styles.deleteButtonText}>Delete Task</Text>
+              <Text style={styles.deleteButtonText}>{isDeletingTask ? 'Deleting...' : 'Delete Task'}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
