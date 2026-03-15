@@ -28,6 +28,20 @@ export function getTaskDueLabel(task: Task) {
   }).format(dueDate);
 }
 
+export function getTaskCreatedLabel(task: Task) {
+  const createdDate = new Date(task.createdAt);
+
+  if (Number.isNaN(createdDate.getTime())) {
+    return task.createdAt;
+  }
+
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(createdDate);
+}
+
 export function matchesTaskSearch(task: Task, search: string) {
   const searchValue = search.trim().toLowerCase();
 

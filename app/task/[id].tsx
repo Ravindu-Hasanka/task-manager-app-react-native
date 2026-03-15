@@ -173,6 +173,12 @@ export default function TaskDetailsScreen() {
 
       <View style={[styles.footer, { backgroundColor: mode === 'dark' ? '#111827' : '#EEF3FF', borderTopColor: theme.cardBorder }]}>
         <TouchableOpacity
+          onPress={() =>
+            router.push({
+              pathname: '/task/[id]/edit',
+              params: { id: currentTask.id },
+            })
+          }
           style={[
             styles.footerButton,
             styles.editButton,

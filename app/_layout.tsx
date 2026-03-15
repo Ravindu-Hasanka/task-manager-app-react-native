@@ -22,6 +22,7 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="add-task" options={{ headerShown: false }} />
             <Stack.Screen name="task/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="task/[id]/edit" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
           </Stack>
           <StatusBar style="auto" />
