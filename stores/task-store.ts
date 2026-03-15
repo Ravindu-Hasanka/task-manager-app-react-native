@@ -1,16 +1,18 @@
 import { create } from 'zustand';
 
-import { getTaskById, getTasks } from '@/lib/api/tasks';
+import { createTask as createTaskRequest, getTaskById, getTasks } from '@/lib/api/tasks';
 import { TASKS as seedTasks } from '@/mock-data/tasks';
-import { Task } from '@/types/task';
+import { CreateTaskInput, Task } from '@/types/task';
 
 type TaskStore = {
+  createTaskError: string | null;
   error: string | null;
+  isCreatingTask: boolean;
   isFetchingList: boolean;
   isFetchingTask: boolean;
   selectedTaskId: string | null;
   tasks: Task[];
-  addTask: (task: Task) => void;
+  addTask: (task: CreateTaskInput) => Promise<Task>;
   completeTask: (id: string) => void;
   deleteTask: (id: string) => void;
   fetchTaskById: (id: string) => Promise<Task | undefined>;
@@ -29,15 +31,38 @@ function replaceTask(tasks: Task[], task: Task) {
 }
 
 export const useTaskStore = create<TaskStore>((set, get) => ({
+  createTaskError: null,
   error: null,
+  isCreatingTask: false,
   isFetchingList: false,
   isFetchingTask: false,
   selectedTaskId: null,
   tasks: seedTasks,
-  addTask: (task) => {
-    set((state) => ({
-      tasks: [task, ...state.tasks],
-    }));
+  addTask: async (task) => {
+    set({
+      createTaskError: null,
+      isCreatingTask: true,
+    });
+
+    try {
+      const createdTask = await createTaskRequest(task);
+
+      set((state) => ({
+        isCreatingTask: false,
+        tasks: replaceTask(state.tasks, createdTask),
+      }));
+
+      return createdTask;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to create task';
+
+      set({
+        createTaskError: message,
+        isCreatingTask: false,
+      });
+
+      throw error instanceof Error ? error : new Error(message);
+    }
   },
   completeTask: (id) => {
     set((state) => ({

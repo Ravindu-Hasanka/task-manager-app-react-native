@@ -1,5 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { router } from 'expo-router';
+import { Controller, useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
 import {
   Pressable,
   ScrollView,
@@ -12,67 +15,84 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { DueDateInput } from '@/components/due-date-input';
 import { buildTheme } from '@/constants/theme/build-theme';
 import { useThemeMode } from '@/hooks/use-theme-mode';
 import { useTaskStore } from '@/stores/task-store';
-import { Task } from '@/types/task';
+import { CreateTaskInput, TASK_PRIORITIES, TaskPriority } from '@/types/task';
 
-const PRIORITIES = ['High', 'Medium', 'Normal'] as const;
+type AddTaskFormValues = Omit<CreateTaskInput, 'priority'> & {
+  priority: TaskPriority | undefined;
+};
+
+const addTaskSchema: yup.ObjectSchema<AddTaskFormValues> = yup.object({
+  title: yup.string().trim().required('Title is required'),
+  description: yup.string().trim().required('Description is required'),
+  category: yup.string().trim().required('Category is required'),
+  dueDate: yup
+    .string()
+    .required('Due date is required')
+    .test('valid-date', 'Please choose a valid date and time', (value) => {
+      if (!value) {
+        return false;
+      }
+
+      return !Number.isNaN(Date.parse(value));
+    }),
+  priority: yup.mixed<TaskPriority>().oneOf(TASK_PRIORITIES).required('Priority is required'),
+});
 
 export default function AddTaskScreen() {
   const { mode } = useThemeMode();
   const theme = useMemo(() => buildTheme(mode), [mode]);
   const addTask = useTaskStore((state) => state.addTask);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState<Task['priority'] | ''>('');
-  const [category, setCategory] = useState('');
-  const [dueDate, setDueDate] = useState('');
+  const isCreatingTask = useTaskStore((state) => state.isCreatingTask);
   const [showPriorityOptions, setShowPriorityOptions] = useState(false);
-  const [showPriorityError, setShowPriorityError] = useState(false);
-  const [formError, setFormError] = useState('');
+  const {
+    clearErrors,
+    control,
+    formState: { errors, isSubmitting },
+    handleSubmit,
+    setError,
+  } = useForm<AddTaskFormValues, unknown, yup.InferType<typeof addTaskSchema>>({
+    defaultValues: {
+      title: '',
+      description: '',
+      category: '',
+      dueDate: '',
+      priority: undefined,
+    },
+    mode: 'onTouched',
+    resolver: yupResolver(addTaskSchema),
+  });
 
-  const handleSave = () => {
-    if (!title.trim()) {
-      setFormError('Title is required');
+  const isSaving = isSubmitting || isCreatingTask;
+
+  const handleSave = handleSubmit(async (values) => {
+    if (!values.priority) {
+      setError('priority', { message: 'Priority is required', type: 'required' });
       return;
     }
 
-    if (!priority) {
-      setShowPriorityError(true);
-      setFormError('Priority is required');
-      return;
+    clearErrors('root');
+
+    try {
+      await addTask({
+        title: values.title,
+        description: values.description,
+        category: values.category,
+        dueDate: values.dueDate,
+        priority: values.priority,
+      });
+
+      router.replace('/tasks');
+    } catch (error) {
+      setError('root', {
+        message: error instanceof Error ? error.message : 'Unable to create task right now',
+        type: 'server',
+      });
     }
-
-    if (!category.trim()) {
-      setFormError('Category is required');
-      return;
-    }
-
-    const parsedDueDate = new Date(dueDate);
-
-    if (!dueDate.trim() || Number.isNaN(parsedDueDate.getTime())) {
-      setFormError('Due date must be a valid ISO date');
-      return;
-    }
-
-    const now = new Date().toISOString();
-    const newTask: Task = {
-      id: Date.now().toString(),
-      title: title.trim(),
-      description: description.trim(),
-      priority,
-      completed: false,
-      category: category.trim(),
-      dueDate: parsedDueDate.toISOString(),
-      status: 'pending',
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    addTask(newTask);
-    router.replace('/tasks');
-  };
+  });
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
@@ -90,142 +110,211 @@ export default function AddTaskScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <FieldLabel label="Title" color={theme.textPrimary} />
-        <TextInput
-          value={title}
-          onChangeText={setTitle}
-          placeholder="Enter task title"
-          placeholderTextColor={theme.textSecondary}
-          style={[
-            styles.input,
-            {
-              backgroundColor: theme.card,
-              borderColor: theme.cardBorder,
-              color: theme.textPrimary,
-            },
-          ]}
+        <Controller
+          control={control}
+          name="title"
+          render={({ field: { onBlur, onChange, value } }) => (
+            <View style={styles.fieldBlock}>
+              <FieldLabel label="Title" color={theme.textPrimary} />
+              <TextInput
+                value={value}
+                onBlur={onBlur}
+                onChangeText={(nextValue) => {
+                  onChange(nextValue);
+                  clearErrors('root');
+                }}
+                placeholder="Enter task title"
+                placeholderTextColor={theme.textSecondary}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: errors.title ? '#FF4D4F' : theme.cardBorder,
+                    color: theme.textPrimary,
+                  },
+                ]}
+              />
+              <FieldError message={errors.title?.message} />
+            </View>
+          )}
         />
 
-        <FieldLabel label="Description" color={theme.textPrimary} />
-        <TextInput
-          value={description}
-          onChangeText={setDescription}
-          placeholder="Enter details..."
-          placeholderTextColor={theme.textSecondary}
-          multiline
-          textAlignVertical="top"
-          style={[
-            styles.input,
-            styles.descriptionInput,
-            {
-              backgroundColor: theme.card,
-              borderColor: theme.cardBorder,
-              color: theme.textPrimary,
-            },
-          ]}
+        <Controller
+          control={control}
+          name="description"
+          render={({ field: { onBlur, onChange, value } }) => (
+            <View style={styles.fieldBlock}>
+              <FieldLabel label="Description" color={theme.textPrimary} />
+              <TextInput
+                value={value}
+                onBlur={onBlur}
+                onChangeText={(nextValue) => {
+                  onChange(nextValue);
+                  clearErrors('root');
+                }}
+                placeholder="Enter details..."
+                placeholderTextColor={theme.textSecondary}
+                multiline
+                textAlignVertical="top"
+                style={[
+                  styles.input,
+                  styles.descriptionInput,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: errors.description ? '#FF4D4F' : theme.cardBorder,
+                    color: theme.textPrimary,
+                  },
+                ]}
+              />
+              <FieldError message={errors.description?.message} />
+            </View>
+          )}
         />
 
-        <FieldLabel label="Category" color={theme.textPrimary} />
-        <TextInput
-          value={category}
-          onChangeText={(value) => {
-            setCategory(value);
-            setFormError('');
-          }}
-          placeholder="Enter task category"
-          placeholderTextColor={theme.textSecondary}
-          style={[
-            styles.input,
-            {
-              backgroundColor: theme.card,
-              borderColor: theme.cardBorder,
-              color: theme.textPrimary,
-            },
-          ]}
+        <Controller
+          control={control}
+          name="category"
+          render={({ field: { onBlur, onChange, value } }) => (
+            <View style={styles.fieldBlock}>
+              <FieldLabel label="Category" color={theme.textPrimary} />
+              <TextInput
+                value={value}
+                onBlur={onBlur}
+                onChangeText={(nextValue) => {
+                  onChange(nextValue);
+                  clearErrors('root');
+                }}
+                placeholder="Enter task category"
+                placeholderTextColor={theme.textSecondary}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: errors.category ? '#FF4D4F' : theme.cardBorder,
+                    color: theme.textPrimary,
+                  },
+                ]}
+              />
+              <FieldError message={errors.category?.message} />
+            </View>
+          )}
         />
 
-        <FieldLabel label="Due Date" color={theme.textPrimary} />
-        <TextInput
-          value={dueDate}
-          onChangeText={(value) => {
-            setDueDate(value);
-            setFormError('');
-          }}
-          placeholder="2025-12-22T09:00:00.000Z"
-          placeholderTextColor={theme.textSecondary}
-          autoCapitalize="none"
-          style={[
-            styles.input,
-            {
-              backgroundColor: theme.card,
-              borderColor: theme.cardBorder,
-              color: theme.textPrimary,
-            },
-          ]}
+        <Controller
+          control={control}
+          name="dueDate"
+          render={({ field: { onBlur, onChange, value } }) => (
+            <View style={styles.fieldBlock}>
+              <FieldLabel label="Due Date & Time" color={theme.textPrimary} />
+              <DueDateInput
+                hasError={Boolean(errors.dueDate)}
+                mode={mode}
+                onBlur={onBlur}
+                onChange={(nextValue) => {
+                  onChange(nextValue);
+                  clearErrors('dueDate');
+                  clearErrors('root');
+                }}
+                theme={theme}
+                value={value}
+              />
+              <FieldError message={errors.dueDate?.message} />
+            </View>
+          )}
         />
 
-        <FieldLabel label="Priority" color={theme.textPrimary} />
-        <Pressable
-          onPress={() => setShowPriorityOptions((current) => !current)}
+        <Controller
+          control={control}
+          name="priority"
+          render={({ field: { onChange, value } }) => (
+            <View style={styles.fieldBlock}>
+              <FieldLabel label="Priority" color={theme.textPrimary} />
+              <Pressable
+                onPress={() => setShowPriorityOptions((current) => !current)}
+                style={[
+                  styles.input,
+                  styles.selectInput,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: errors.priority ? '#FF4D4F' : theme.cardBorder,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.selectText,
+                    { color: value ? theme.textPrimary : theme.textSecondary },
+                  ]}
+                >
+                  {value || 'Select priority level'}
+                </Text>
+                <Ionicons
+                  name={showPriorityOptions ? 'chevron-up' : 'chevron-down'}
+                  size={20}
+                  color={theme.textSecondary}
+                />
+              </Pressable>
+
+              {showPriorityOptions && (
+                <View
+                  style={[
+                    styles.priorityList,
+                    { backgroundColor: theme.card, borderColor: theme.cardBorder },
+                  ]}
+                >
+                  {TASK_PRIORITIES.map((item) => (
+                    <Pressable
+                      key={item}
+                      onPress={() => {
+                        onChange(item);
+                        clearErrors('priority');
+                        clearErrors('root');
+                        setShowPriorityOptions(false);
+                      }}
+                      style={styles.priorityOption}
+                    >
+                      <Text style={[styles.priorityOptionText, { color: theme.textPrimary }]}>
+                        {item}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+
+              <FieldError message={errors.priority?.message} />
+            </View>
+          )}
+        />
+
+        <FieldError message={errors.root?.message} />
+      </ScrollView>
+
+      <View
+        style={[
+          styles.footer,
+          {
+            backgroundColor: mode === 'dark' ? '#111827' : '#EEF3FF',
+            borderTopColor: theme.cardBorder,
+          },
+        ]}
+      >
+        <TouchableOpacity
+          disabled={isSaving}
+          onPress={() => void handleSave()}
           style={[
-            styles.input,
-            styles.selectInput,
+            styles.saveButton,
             {
-              backgroundColor: theme.card,
-              borderColor: theme.cardBorder,
+              backgroundColor: theme.blue,
+              opacity: isSaving ? 0.72 : 1,
             },
           ]}
         >
-          <Text style={[styles.selectText, { color: priority ? theme.textPrimary : theme.textSecondary }]}>
-            {priority || 'Select priority level'}
-          </Text>
-          <Ionicons
-            name={showPriorityOptions ? 'chevron-up' : 'chevron-down'}
-            size={20}
-            color={theme.textSecondary}
-          />
-        </Pressable>
-
-        {showPriorityOptions && (
-          <View style={[styles.priorityList, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
-            {PRIORITIES.map((item) => (
-              <Pressable
-                key={item}
-                onPress={() => {
-                  setPriority(item);
-                  setShowPriorityOptions(false);
-                  setShowPriorityError(false);
-                  setFormError('');
-                }}
-                style={styles.priorityOption}
-              >
-                <Text style={[styles.priorityOptionText, { color: theme.textPrimary }]}>{item}</Text>
-              </Pressable>
-            ))}
-          </View>
-        )}
-
-        {showPriorityError && (
-          <View style={styles.errorRow}>
-            <Ionicons name="alert-circle-outline" size={16} color="#FF4D4F" />
-            <Text style={styles.errorText}>Priority is required</Text>
-          </View>
-        )}
-
-        {formError.length > 0 && !showPriorityError && (
-          <View style={styles.errorRow}>
-            <Ionicons name="alert-circle-outline" size={16} color="#FF4D4F" />
-            <Text style={styles.errorText}>{formError}</Text>
-          </View>
-        )}
-      </ScrollView>
-
-      <View style={[styles.footer, { backgroundColor: mode === 'dark' ? '#111827' : '#EEF3FF', borderTopColor: theme.cardBorder }]}>
-        <TouchableOpacity onPress={handleSave} style={[styles.saveButton, { backgroundColor: theme.blue }]}>
           <Ionicons name="checkmark-circle-outline" size={22} color="#FFFFFF" />
-          <Text style={styles.saveButtonText}>Save Task</Text>
+          <Text style={styles.saveButtonText}>{isSaving ? 'Saving Task...' : 'Save Task'}</Text>
         </TouchableOpacity>
-        <Text style={[styles.footerText, { color: theme.textSecondary }]}>Changes will be saved to your workspace</Text>
+        <Text style={[styles.footerText, { color: theme.textSecondary }]}>
+          New tasks are validated locally and then sent to the API
+        </Text>
       </View>
     </SafeAreaView>
   );
@@ -233,6 +322,21 @@ export default function AddTaskScreen() {
 
 function FieldLabel({ label, color }: { label: string; color: string }) {
   return <Text style={[styles.label, { color }]}>{label}</Text>;
+}
+
+function FieldError({ message }: { message?: unknown }) {
+  const text = typeof message === 'string' ? message : undefined;
+
+  if (!text) {
+    return null;
+  }
+
+  return (
+    <View style={styles.errorRow}>
+      <Ionicons name="alert-circle-outline" size={16} color="#FF4D4F" />
+      <Text style={styles.errorText}>{text}</Text>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -264,6 +368,9 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 32,
   },
+  fieldBlock: {
+    marginBottom: 24,
+  },
   label: {
     fontSize: 16,
     fontWeight: '700',
@@ -275,7 +382,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingHorizontal: 16,
     fontSize: 16,
-    marginBottom: 24,
   },
   descriptionInput: {
     minHeight: 160,
@@ -292,8 +398,7 @@ const styles = StyleSheet.create({
   priorityList: {
     borderWidth: 1,
     borderRadius: 14,
-    marginTop: -10,
-    marginBottom: 16,
+    marginTop: 12,
     overflow: 'hidden',
   },
   priorityOption: {
@@ -308,7 +413,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: -4,
+    marginTop: 8,
   },
   errorText: {
     color: '#FF4D4F',
