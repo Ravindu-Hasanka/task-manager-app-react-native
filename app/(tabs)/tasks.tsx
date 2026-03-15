@@ -12,6 +12,7 @@ import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Swipeable } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { TaskSearchEmptyState } from '@/components/task-search-empty-state';
 import {
   getTaskDueLabel,
   getTaskPriorityLabel,
@@ -114,21 +115,33 @@ export default function TasksScreen() {
           <Text style={[styles.listSubtitle, { color: theme.textSecondary }]}>Manage your daily workload</Text>
         </View>
 
-        {filteredTasks.map((task) => (
-          <TaskCard
-            key={task.id}
-            task={task}
+        {filteredTasks.length === 0 && search.trim().length > 0 ? (
+          <TaskSearchEmptyState
+            query={search.trim()}
             theme={theme}
-            onDelete={() => handleDeleteTask(task.id)}
-            onComplete={() => handleCompleteTask(task.id)}
-            onPress={() =>
-              router.push({
-                pathname: '/task/[id]',
-                params: { id: task.id },
-              })
-            }
+            onClearSearch={() => setSearch('')}
+            onBrowseAll={() => {
+              setSearch('');
+              setFilter('all');
+            }}
           />
-        ))}
+        ) : (
+          filteredTasks.map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              theme={theme}
+              onDelete={() => handleDeleteTask(task.id)}
+              onComplete={() => handleCompleteTask(task.id)}
+              onPress={() =>
+                router.push({
+                  pathname: '/task/[id]',
+                  params: { id: task.id },
+                })
+              }
+            />
+          ))
+        )}
       </ScrollView>
     </SafeAreaView>
   );

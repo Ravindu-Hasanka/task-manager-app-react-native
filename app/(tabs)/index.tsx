@@ -111,6 +111,7 @@ import {
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { Swipeable } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { TaskSearchEmptyState } from '@/components/task-search-empty-state';
 import {
   getTaskDueLabel,
   getTaskPriorityLabel,
@@ -241,21 +242,34 @@ export const DashboardScreen = ({
             />
           </View>
 
-          {filteredTasks.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
+          {filteredTasks.length === 0 && search.trim().length > 0 ? (
+            <TaskSearchEmptyState
+              query={search.trim()}
               theme={theme}
-              onDelete={() => handleDeleteTask(task.id)}
-              onComplete={() => handleCompleteTask(task.id)}
-              onPress={() =>
-                router.push({
-                  pathname: '/task/[id]',
-                  params: { id: task.id },
-                })
-              }
+              onClearSearch={() => setSearch('')}
+              onBrowseAll={() => {
+                setSearch('');
+                setFilter('all');
+                router.replace('/tasks');
+              }}
             />
-          ))}
+          ) : (
+            filteredTasks.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                theme={theme}
+                onDelete={() => handleDeleteTask(task.id)}
+                onComplete={() => handleCompleteTask(task.id)}
+                onPress={() =>
+                  router.push({
+                    pathname: '/task/[id]',
+                    params: { id: task.id },
+                  })
+                }
+              />
+            ))
+          )}
         </ScrollView>
 
         <TouchableOpacity
