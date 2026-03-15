@@ -23,9 +23,11 @@ export default function TaskDetailsScreen() {
   const deleteTask = useTaskStore((state) => state.deleteTask);
   const fetchTaskById = useTaskStore((state) => state.fetchTaskById);
   const isFetchingTask = useTaskStore((state) => state.isFetchingTask);
+  const isUpdatingTask = useTaskStore((state) => state.isUpdatingTask);
   const tasks = useTaskStore((state) => state.tasks);
   const task = tasks.find((item) => item.id === id);
   const [completed, setCompleted] = useState(task ? isTaskCompleted(task) : false);
+  const [statusError, setStatusError] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
@@ -98,17 +100,15 @@ export default function TaskDetailsScreen() {
         ? { bg: mode === 'dark' ? '#4B3C16' : '#FBE7B6', text: '#D69E2E' }
         : { bg: mode === 'dark' ? '#2D3748' : '#E2E8F0', text: '#64748B' };
 
-  const handleStatusChange = (nextCompleted: boolean) => {
-    if (nextCompleted) {
-      completeTask(task.id);
-      setCompleted(true);
-      return;
-    }
+  const handleStatusChange = async (nextCompleted: boolean) => {
+    setStatusError('');
 
-    task.completed = false;
-    task.status = 'pending';
-    task.updatedAt = new Date().toISOString();
-    setCompleted(false);
+    try {
+      await completeTask(task.id, nextCompleted);
+      setCompleted(nextCompleted);
+    } catch (error) {
+      setStatusError(error instanceof Error ? error.message : 'Unable to update task status');
+    }
   };
 
   const handleDelete = () => {
@@ -161,12 +161,14 @@ export default function TaskDetailsScreen() {
             ]}
           >
             <TouchableOpacity
-              onPress={() => handleStatusChange(false)}
+              disabled={isUpdatingTask}
+              onPress={() => void handleStatusChange(false)}
               style={[
                 styles.statusOption,
                 {
                   backgroundColor: !completed ? theme.blue : 'transparent',
                   borderColor: 'transparent',
+                  opacity: isUpdatingTask ? 0.72 : 1,
                 },
               ]}
             >
@@ -181,12 +183,14 @@ export default function TaskDetailsScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => handleStatusChange(true)}
+              disabled={isUpdatingTask}
+              onPress={() => void handleStatusChange(true)}
               style={[
                 styles.statusOption,
                 {
                   backgroundColor: completed ? theme.blue : 'transparent',
                   borderColor: 'transparent',
+                  opacity: isUpdatingTask ? 0.72 : 1,
                 },
               ]}
             >
@@ -207,6 +211,7 @@ export default function TaskDetailsScreen() {
           <Text style={[styles.categoryLabel, { color: theme.textSecondary }]}>
             Current status: <Text style={{ color: theme.textPrimary }}>{statusLabel}</Text>
           </Text>
+          {statusError.length > 0 && <Text style={styles.statusErrorText}>{statusError}</Text>}
         </View>
       </ScrollView>
 
@@ -391,6 +396,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     marginTop: 6,
+  },
+  statusErrorText: {
+    color: '#FF4D4F',
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 12,
   },
   footer: {
     borderTopWidth: 1,

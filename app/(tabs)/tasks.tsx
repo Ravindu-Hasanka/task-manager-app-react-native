@@ -68,7 +68,7 @@ export default function TasksScreen() {
   };
 
   const handleCompleteTask = (taskId: string) => {
-    completeTask(taskId);
+    void completeTask(taskId);
   };
 
   return (

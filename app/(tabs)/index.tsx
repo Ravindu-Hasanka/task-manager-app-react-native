@@ -176,7 +176,7 @@ export const DashboardScreen = ({
   };
 
   const handleCompleteTask = (taskId: string) => {
-    completeTask(taskId);
+    void completeTask(taskId);
   };
 
   return (

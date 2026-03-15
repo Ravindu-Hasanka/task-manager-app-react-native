@@ -1,6 +1,11 @@
 import { create } from 'zustand';
 
-import { createTask as createTaskRequest, getTaskById, getTasks } from '@/lib/api/tasks';
+import {
+  createTask as createTaskRequest,
+  getTaskById,
+  getTasks,
+  updateTask as updateTaskRequest,
+} from '@/lib/api/tasks';
 import { TASKS as seedTasks } from '@/mock-data/tasks';
 import { CreateTaskInput, Task } from '@/types/task';
 
@@ -10,14 +15,16 @@ type TaskStore = {
   isCreatingTask: boolean;
   isFetchingList: boolean;
   isFetchingTask: boolean;
+  isUpdatingTask: boolean;
   selectedTaskId: string | null;
   tasks: Task[];
+  updateTaskError: string | null;
   addTask: (task: CreateTaskInput) => Promise<Task>;
-  completeTask: (id: string) => void;
+  completeTask: (id: string, completed?: boolean) => Promise<Task | undefined>;
   deleteTask: (id: string) => void;
   fetchTaskById: (id: string) => Promise<Task | undefined>;
   fetchTasks: () => Promise<void>;
-  updateTask: (task: Task) => void;
+  updateTask: (task: Task) => Promise<Task>;
 };
 
 function replaceTask(tasks: Task[], task: Task) {
@@ -36,8 +43,10 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   isCreatingTask: false,
   isFetchingList: false,
   isFetchingTask: false,
+  isUpdatingTask: false,
   selectedTaskId: null,
   tasks: seedTasks,
+  updateTaskError: null,
   addTask: async (task) => {
     set({
       createTaskError: null,
@@ -64,19 +73,41 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       throw error instanceof Error ? error : new Error(message);
     }
   },
-  completeTask: (id) => {
-    set((state) => ({
-      tasks: state.tasks.map((task) =>
-        task.id === id
-          ? {
-              ...task,
-              completed: true,
-              status: 'completed',
-              updatedAt: new Date().toISOString(),
-            }
-          : task
-      ),
-    }));
+  completeTask: async (id, completed = true) => {
+    const task = get().tasks.find((item) => item.id === id);
+
+    if (!task) {
+      return undefined;
+    }
+
+    set({
+      isUpdatingTask: true,
+      updateTaskError: null,
+    });
+
+    try {
+      const updatedTask = await updateTaskRequest({
+        ...task,
+        completed,
+        status: completed ? 'completed' : 'pending',
+      });
+
+      set((state) => ({
+        isUpdatingTask: false,
+        tasks: replaceTask(state.tasks, updatedTask),
+      }));
+
+      return updatedTask;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to update task status';
+
+      set({
+        isUpdatingTask: false,
+        updateTaskError: message,
+      });
+
+      throw error instanceof Error ? error : new Error(message);
+    }
   },
   deleteTask: (id) => {
     set((state) => ({
@@ -128,12 +159,30 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       });
     }
   },
-  updateTask: (task) => {
-    set((state) => ({
-      tasks: replaceTask(state.tasks, {
-        ...task,
-        updatedAt: new Date().toISOString(),
-      }),
-    }));
+  updateTask: async (task) => {
+    set({
+      isUpdatingTask: true,
+      updateTaskError: null,
+    });
+
+    try {
+      const updatedTask = await updateTaskRequest(task);
+
+      set((state) => ({
+        isUpdatingTask: false,
+        tasks: replaceTask(state.tasks, updatedTask),
+      }));
+
+      return updatedTask;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to update task';
+
+      set({
+        isUpdatingTask: false,
+        updateTaskError: message,
+      });
+
+      throw error instanceof Error ? error : new Error(message);
+    }
   },
 }));

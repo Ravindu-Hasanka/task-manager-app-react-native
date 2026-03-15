@@ -28,3 +28,20 @@ export async function createTask(task: CreateTaskInput) {
 
   return response.data;
 }
+
+export async function updateTask(task: Task) {
+  const now = new Date().toISOString();
+  const response = await apiClient.put<Task>(`/todo/${task.id}`, {
+    title: task.title.trim(),
+    description: task.description.trim(),
+    priority: task.priority,
+    completed: task.completed,
+    category: task.category.trim(),
+    dueDate: new Date(task.dueDate).toISOString(),
+    status: task.status,
+    createdAt: task.createdAt,
+    updatedAt: now,
+  });
+
+  return response.data;
+}

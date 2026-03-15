@@ -32,6 +32,7 @@ export default function EditTaskScreen() {
   const deleteTask = useTaskStore((state) => state.deleteTask);
   const fetchTaskById = useTaskStore((state) => state.fetchTaskById);
   const isFetchingTask = useTaskStore((state) => state.isFetchingTask);
+  const isUpdatingTask = useTaskStore((state) => state.isUpdatingTask);
   const tasks = useTaskStore((state) => state.tasks);
   const updateTask = useTaskStore((state) => state.updateTask);
   const task = tasks.find((item) => item.id === id);
@@ -99,7 +100,7 @@ export default function EditTaskScreen() {
     );
   }
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (!title.trim()) {
       setFormError('Task title is required');
       return;
@@ -115,18 +116,22 @@ export default function EditTaskScreen() {
       return;
     }
 
-    updateTask({
-      ...task,
-      title: title.trim(),
-      description: description.trim(),
-      category: category.trim(),
-      priority,
-    });
+    try {
+      const updatedTask = await updateTask({
+        ...task,
+        title: title.trim(),
+        description: description.trim(),
+        category: category.trim(),
+        priority,
+      });
 
-    router.replace({
-      pathname: '/task/[id]',
-      params: { id: task.id },
-    });
+      router.replace({
+        pathname: '/task/[id]',
+        params: { id: updatedTask.id },
+      });
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Unable to update task');
+    }
   };
 
   const handleDelete = () => {
@@ -260,9 +265,19 @@ export default function EditTaskScreen() {
           },
         ]}
       >
-        <TouchableOpacity onPress={handleUpdate} style={[styles.updateButton, { backgroundColor: theme.blue }]}>
+        <TouchableOpacity
+          disabled={isUpdatingTask}
+          onPress={() => void handleUpdate()}
+          style={[
+            styles.updateButton,
+            {
+              backgroundColor: theme.blue,
+              opacity: isUpdatingTask ? 0.72 : 1,
+            },
+          ]}
+        >
           <Ionicons name="checkmark-circle-outline" size={22} color="#FFFFFF" />
-          <Text style={styles.updateButtonText}>Update Task</Text>
+          <Text style={styles.updateButtonText}>{isUpdatingTask ? 'Updating Task...' : 'Update Task'}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => setShowDeleteConfirm(true)} style={styles.deleteTextButton}>
