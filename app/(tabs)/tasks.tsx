@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import {
   ScrollView,
@@ -27,7 +27,7 @@ import {
 import { buildTheme } from '@/constants/theme/build-theme';
 import { useTaskConnection } from '@/hooks/use-task-connection';
 import { useThemeMode } from '@/hooks/use-theme-mode';
-import { TASKS } from '@/mock-data/tasks';
+import { useTaskStore } from '@/stores/task-store';
 import { Filter } from '@/types/task-filter';
 import { Task } from '@/types/task';
 
@@ -36,11 +36,18 @@ export default function TasksScreen() {
   const theme = useMemo(() => buildTheme(mode), [mode]);
   const router = useRouter();
   const { goOfflineMode, initialLoadFailed, isRefreshing, refreshTasks, retryConnection } = useTaskConnection();
-  const [, setTaskVersion] = useState(0);
+  const completeTask = useTaskStore((state) => state.completeTask);
+  const deleteTask = useTaskStore((state) => state.deleteTask);
+  const fetchTasks = useTaskStore((state) => state.fetchTasks);
+  const tasks = useTaskStore((state) => state.tasks);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
 
-  const filteredTasks = TASKS.filter(
+  useEffect(() => {
+    void fetchTasks();
+  }, [fetchTasks]);
+
+  const filteredTasks = tasks.filter(
     (task) => matchesTaskSearch(task, search) && matchesTaskFilter(task, filter)
   );
 
@@ -57,25 +64,11 @@ export default function TasksScreen() {
   }
 
   const handleDeleteTask = (taskId: string) => {
-    const taskIndex = TASKS.findIndex((task) => task.id === taskId);
-
-    if (taskIndex !== -1) {
-      TASKS.splice(taskIndex, 1);
-      setTaskVersion((current) => current + 1);
-    }
+    deleteTask(taskId);
   };
 
   const handleCompleteTask = (taskId: string) => {
-    const task = TASKS.find((item) => item.id === taskId);
-
-    if (!task) {
-      return;
-    }
-
-    task.completed = true;
-    task.status = 'completed';
-    task.updatedAt = new Date().toISOString();
-    setTaskVersion((current) => current + 1);
+    completeTask(taskId);
   };
 
   return (
@@ -85,7 +78,10 @@ export default function TasksScreen() {
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
-            onRefresh={() => void refreshTasks()}
+            onRefresh={() => {
+              void refreshTasks();
+              void fetchTasks();
+            }}
             tintColor={theme.blue}
             colors={[theme.blue]}
           />

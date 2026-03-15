@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,16 +12,54 @@ import {
 } from '@/constants/task-ui';
 import { buildTheme } from '@/constants/theme/build-theme';
 import { useThemeMode } from '@/hooks/use-theme-mode';
-import { TASKS } from '@/mock-data/tasks';
+import { useTaskStore } from '@/stores/task-store';
 import { Task } from '@/types/task';
 
 export default function TaskDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { mode } = useThemeMode();
   const theme = useMemo(() => buildTheme(mode), [mode]);
-  const task = TASKS.find((item) => item.id === id);
+  const completeTask = useTaskStore((state) => state.completeTask);
+  const deleteTask = useTaskStore((state) => state.deleteTask);
+  const fetchTaskById = useTaskStore((state) => state.fetchTaskById);
+  const isFetchingTask = useTaskStore((state) => state.isFetchingTask);
+  const tasks = useTaskStore((state) => state.tasks);
+  const task = tasks.find((item) => item.id === id);
   const [completed, setCompleted] = useState(task ? isTaskCompleted(task) : false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  useEffect(() => {
+    if (id) {
+      void fetchTaskById(id);
+    }
+  }, [fetchTaskById, id]);
+
+  useEffect(() => {
+    if (task) {
+      setCompleted(isTaskCompleted(task));
+    }
+  }, [task]);
+
+  if (!task && isFetchingTask) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+        <View style={[styles.header, { borderBottomColor: theme.cardBorder }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={theme.textPrimary} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Task Details</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+
+        <View style={styles.emptyState}>
+          <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Loading task...</Text>
+          <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+            Fetching the latest task details from the server.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (!task) {
     return (
@@ -61,19 +99,20 @@ export default function TaskDetailsScreen() {
         : { bg: mode === 'dark' ? '#2D3748' : '#E2E8F0', text: '#64748B' };
 
   const handleStatusChange = (nextCompleted: boolean) => {
-    task.completed = nextCompleted;
-    task.status = nextCompleted ? 'completed' : 'pending';
+    if (nextCompleted) {
+      completeTask(task.id);
+      setCompleted(true);
+      return;
+    }
+
+    task.completed = false;
+    task.status = 'pending';
     task.updatedAt = new Date().toISOString();
-    setCompleted(nextCompleted);
+    setCompleted(false);
   };
 
   const handleDelete = () => {
-    const taskIndex = TASKS.findIndex((item) => item.id === task.id);
-
-    if (taskIndex !== -1) {
-      TASKS.splice(taskIndex, 1);
-    }
-
+    deleteTask(task.id);
     router.replace('/tasks');
   };
 

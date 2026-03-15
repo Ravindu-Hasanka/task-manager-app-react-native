@@ -2,25 +2,25 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { buildTheme } from '@/constants/theme/build-theme';
 
-type HeaderProps =
-  | {
-      theme: ReturnType<typeof buildTheme>;
-      variant?: 'dashboard';
-      onThemeToggle: () => void;
-    }
-  | {
-      theme: ReturnType<typeof buildTheme>;
-      variant: 'title';
-      title: string;
-      onBackPress: () => void;
-    };
+type DashboardHeaderProps = {
+  theme: ReturnType<typeof buildTheme>;
+  variant?: 'dashboard';
+  onThemeToggle: () => void;
+};
 
-export const Header = ({
-  theme,
-  variant = 'dashboard',
-  ...props
-}: HeaderProps) => {
-  if (variant === 'title') {
+type TitleHeaderProps = {
+  theme: ReturnType<typeof buildTheme>;
+  variant: 'title';
+  title: string;
+  onBackPress: () => void;
+};
+
+type HeaderProps = DashboardHeaderProps | TitleHeaderProps;
+
+export const Header = (props: HeaderProps) => {
+  const { theme } = props;
+
+  if (props.variant === 'title') {
     return (
       <View style={styles.titleHeaderRow}>
         <TouchableOpacity onPress={props.onBackPress} style={styles.backButton}>

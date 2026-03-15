@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
   Modal,
@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { getTaskCreatedLabel } from '@/constants/task-ui';
 import { buildTheme } from '@/constants/theme/build-theme';
 import { useThemeMode } from '@/hooks/use-theme-mode';
-import { TASKS } from '@/mock-data/tasks';
+import { useTaskStore } from '@/stores/task-store';
 import { Task } from '@/types/task';
 
 const PRIORITY_OPTIONS: { label: string; value: Task['priority'] }[] = [
@@ -29,13 +29,54 @@ export default function EditTaskScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { mode } = useThemeMode();
   const theme = useMemo(() => buildTheme(mode), [mode]);
-  const task = TASKS.find((item) => item.id === id);
+  const deleteTask = useTaskStore((state) => state.deleteTask);
+  const fetchTaskById = useTaskStore((state) => state.fetchTaskById);
+  const isFetchingTask = useTaskStore((state) => state.isFetchingTask);
+  const tasks = useTaskStore((state) => state.tasks);
+  const updateTask = useTaskStore((state) => state.updateTask);
+  const task = tasks.find((item) => item.id === id);
   const [title, setTitle] = useState(task?.title ?? '');
   const [description, setDescription] = useState(task?.description ?? '');
   const [category, setCategory] = useState(task?.category ?? '');
   const [priority, setPriority] = useState<Task['priority']>(task?.priority ?? 'Normal');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [formError, setFormError] = useState('');
+
+  useEffect(() => {
+    if (id) {
+      void fetchTaskById(id);
+    }
+  }, [fetchTaskById, id]);
+
+  useEffect(() => {
+    if (task) {
+      setTitle(task.title);
+      setDescription(task.description);
+      setCategory(task.category);
+      setPriority(task.priority);
+    }
+  }, [task]);
+
+  if (!task && isFetchingTask) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+        <View style={[styles.header, { borderBottomColor: theme.cardBorder }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={theme.textPrimary} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Edit Task</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+
+        <View style={styles.emptyState}>
+          <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Loading task...</Text>
+          <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+            Fetching the latest task details from the server.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (!task) {
     return (
@@ -74,11 +115,13 @@ export default function EditTaskScreen() {
       return;
     }
 
-    task.title = title.trim();
-    task.description = description.trim();
-    task.category = category.trim();
-    task.priority = priority;
-    task.updatedAt = new Date().toISOString();
+    updateTask({
+      ...task,
+      title: title.trim(),
+      description: description.trim(),
+      category: category.trim(),
+      priority,
+    });
 
     router.replace({
       pathname: '/task/[id]',
@@ -87,12 +130,7 @@ export default function EditTaskScreen() {
   };
 
   const handleDelete = () => {
-    const taskIndex = TASKS.findIndex((item) => item.id === task.id);
-
-    if (taskIndex !== -1) {
-      TASKS.splice(taskIndex, 1);
-    }
-
+    deleteTask(task.id);
     router.replace('/tasks');
   };
 

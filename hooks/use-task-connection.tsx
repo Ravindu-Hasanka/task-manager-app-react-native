@@ -94,8 +94,12 @@ export function TaskConnectionProvider({ children }: { children: React.ReactNode
         initialLoadFailed,
         isRefreshing,
         showOfflineBanner,
-        refreshTasks: () => runConnectionCheck(),
-        retryConnection: () => runConnectionCheck(),
+        refreshTasks: async () => {
+          await runConnectionCheck();
+        },
+        retryConnection: async () => {
+          await runConnectionCheck();
+        },
         goOfflineMode: () => {
           setInitialLoadFailed(false);
           setHasLoadedOnce(true);

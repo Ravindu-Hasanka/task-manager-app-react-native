@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { buildTheme } from '@/constants/theme/build-theme';
 import { useThemeMode } from '@/hooks/use-theme-mode';
-import { TASKS } from '@/mock-data/tasks';
+import { useTaskStore } from '@/stores/task-store';
 import { Task } from '@/types/task';
 
 const PRIORITIES = ['High', 'Medium', 'Normal'] as const;
@@ -22,6 +22,7 @@ const PRIORITIES = ['High', 'Medium', 'Normal'] as const;
 export default function AddTaskScreen() {
   const { mode } = useThemeMode();
   const theme = useMemo(() => buildTheme(mode), [mode]);
+  const addTask = useTaskStore((state) => state.addTask);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<Task['priority'] | ''>('');
@@ -69,7 +70,7 @@ export default function AddTaskScreen() {
       updatedAt: now,
     };
 
-    TASKS.unshift(newTask);
+    addTask(newTask);
     router.replace('/tasks');
   };
 

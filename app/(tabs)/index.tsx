@@ -97,7 +97,7 @@
 //   },
 // });
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import {
   View,
@@ -128,8 +128,8 @@ import { useTaskConnection } from '@/hooks/use-task-connection';
 import { ThemeMode } from '@/types/theme-mode';
 import { Filter } from '@/types/task-filter';
 import { Task } from '@/types/task';
-import { TASKS } from '@/mock-data/tasks';
 import { useThemeMode } from '@/hooks/use-theme-mode';
+import { useTaskStore } from '@/stores/task-store';
 
 export const DashboardScreen = ({
   mode,
@@ -140,17 +140,24 @@ export const DashboardScreen = ({
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { goOfflineMode, initialLoadFailed, isRefreshing, refreshTasks, retryConnection } = useTaskConnection();
-  const [, setTaskVersion] = useState(0);
+  const completeTask = useTaskStore((state) => state.completeTask);
+  const deleteTask = useTaskStore((state) => state.deleteTask);
+  const fetchTasks = useTaskStore((state) => state.fetchTasks);
+  const tasks = useTaskStore((state) => state.tasks);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
 
-  const filteredTasks = TASKS.filter(
+  useEffect(() => {
+    void fetchTasks();
+  }, [fetchTasks]);
+
+  const filteredTasks = tasks.filter(
     (task) => matchesTaskSearch(task, search) && matchesTaskFilter(task, filter)
   );
 
-  const completedCount = TASKS.filter(isTaskCompleted).length;
-  const pendingCount = TASKS.length - completedCount;
-  const progress = completedCount / TASKS.length;
+  const completedCount = tasks.filter(isTaskCompleted).length;
+  const pendingCount = tasks.length - completedCount;
+  const progress = tasks.length > 0 ? completedCount / tasks.length : 0;
 
   if (initialLoadFailed) {
     return (
@@ -165,25 +172,11 @@ export const DashboardScreen = ({
   }
 
   const handleDeleteTask = (taskId: string) => {
-    const taskIndex = TASKS.findIndex((task) => task.id === taskId);
-
-    if (taskIndex !== -1) {
-      TASKS.splice(taskIndex, 1);
-      setTaskVersion((current) => current + 1);
-    }
+    deleteTask(taskId);
   };
 
   const handleCompleteTask = (taskId: string) => {
-    const task = TASKS.find((item) => item.id === taskId);
-
-    if (!task) {
-      return;
-    }
-
-    task.completed = true;
-    task.status = 'completed';
-    task.updatedAt = new Date().toISOString();
-    setTaskVersion((current) => current + 1);
+    completeTask(taskId);
   };
 
   return (
@@ -205,7 +198,10 @@ export const DashboardScreen = ({
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
-              onRefresh={() => void refreshTasks()}
+              onRefresh={() => {
+                void refreshTasks();
+                void fetchTasks();
+              }}
               tintColor={theme.blue}
               colors={[theme.blue]}
             />
@@ -224,7 +220,7 @@ export const DashboardScreen = ({
           <View style={styles.progressHeader}>
             <Text style={[styles.progressTitle, { color: theme.blue }]}>Task Progress</Text>
             <Text style={[styles.progressText, { color: theme.textSecondary }]}>
-              {completedCount} of {TASKS.length} completed ({Math.round(progress * 100)}%)
+              {completedCount} of {tasks.length} completed ({Math.round(progress * 100)}%)
             </Text>
           </View>
 
