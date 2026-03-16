@@ -21,6 +21,7 @@ import { TaskScreenLoadingState } from '../components/task-screen-loading-state'
 import { getTaskCreatedLabel } from '../utils/task-ui';
 import { buildTheme } from '../constants/theme/build-theme';
 import { useThemeMode } from '../hooks/use-theme-mode';
+import { useToast } from '../hooks/use-toast';
 import { useTaskStore } from '../store/task-store';
 import { TASK_PRIORITIES } from '../types/task';
 import { mapTaskFormValuesToInput, taskFormDefaults, taskFormSchema, TaskFormValues } from '../utils/task-form';
@@ -29,6 +30,7 @@ export default function EditTaskScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { mode } = useThemeMode();
   const theme = useMemo(() => buildTheme(mode), [mode]);
+  const { showError, showSuccess } = useToast();
   const activeTaskMutationId = useTaskStore((state) => state.activeTaskMutationId);
   const activeTaskMutationType = useTaskStore((state) => state.activeTaskMutationType);
   const deleteTask = useTaskStore((state) => state.deleteTask);
@@ -125,6 +127,7 @@ export default function EditTaskScreen() {
         ...task,
         ...mapTaskFormValuesToInput(values),
       });
+      showSuccess('Task updated successfully.');
 
       router.replace({
         pathname: '/task/[id]',
@@ -135,22 +138,27 @@ export default function EditTaskScreen() {
 
       if (message === 'Priority is required') {
         setError('priority', { message, type: 'required' });
+        showError(message);
         return;
       }
 
       setError('root', { message, type: 'server' });
+      showError(message);
     }
   });
 
   const handleDelete = async () => {
     try {
       await deleteTask(task.id);
+      showSuccess('Task deleted successfully.');
       router.replace('/tasks');
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to delete task';
       setError('root', {
-        message: error instanceof Error ? error.message : 'Unable to delete task',
+        message,
         type: 'server',
       });
+      showError(message);
       setShowDeleteConfirm(false);
     }
   };

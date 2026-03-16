@@ -22,6 +22,7 @@ import {
 } from '../utils/task-ui';
 import { buildTheme } from '../constants/theme/build-theme';
 import { useThemeMode } from '../hooks/use-theme-mode';
+import { useToast } from '../hooks/use-toast';
 import { useTaskStore } from '../store/task-store';
 import { Task } from '../types/task';
 
@@ -29,6 +30,7 @@ export default function TaskDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { mode } = useThemeMode();
   const theme = useMemo(() => buildTheme(mode), [mode]);
+  const { showError, showInfo, showSuccess } = useToast();
   const activeTaskMutationId = useTaskStore((state) => state.activeTaskMutationId);
   const activeTaskMutationType = useTaskStore((state) => state.activeTaskMutationType);
   const completeTask = useTaskStore((state) => state.completeTask);
@@ -121,8 +123,11 @@ export default function TaskDetailsScreen() {
     try {
       await completeTask(task.id, nextCompleted);
       setCompleted(nextCompleted);
+      showInfo(nextCompleted ? 'Task marked as completed.' : 'Task moved back to pending.');
     } catch (error) {
-      setStatusError(error instanceof Error ? error.message : 'Unable to update task status');
+      const message = error instanceof Error ? error.message : 'Unable to update task status';
+      setStatusError(message);
+      showError(message);
     } finally {
       setPendingCompletedValue(null);
     }
@@ -132,9 +137,12 @@ export default function TaskDetailsScreen() {
     void (async () => {
       try {
         await deleteTask(task.id);
+        showSuccess('Task deleted successfully.');
         router.replace('/tasks');
       } catch (error) {
-        setStatusError(error instanceof Error ? error.message : 'Unable to delete task');
+        const message = error instanceof Error ? error.message : 'Unable to delete task';
+        setStatusError(message);
+        showError(message);
         setShowDeleteConfirm(false);
       }
     })();

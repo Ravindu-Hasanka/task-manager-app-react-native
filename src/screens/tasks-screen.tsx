@@ -29,6 +29,7 @@ import {
 import { buildTheme } from '../constants/theme/build-theme';
 import { useTaskConnection } from '../hooks/use-task-connection';
 import { useThemeMode } from '../hooks/use-theme-mode';
+import { useToast } from '../hooks/use-toast';
 import { useTaskStore } from '../store/task-store';
 import { Filter } from '../types/task-filter';
 import { Task } from '../types/task';
@@ -37,6 +38,7 @@ export default function TasksScreen() {
   const { mode } = useThemeMode();
   const theme = useMemo(() => buildTheme(mode), [mode]);
   const router = useRouter();
+  const { showError, showInfo, showSuccess } = useToast();
   const { goOfflineMode, initialLoadFailed, isCheckingConnection, isRefreshing, retryConnection } = useTaskConnection();
   const activeTaskMutationId = useTaskStore((state) => state.activeTaskMutationId);
   const activeTaskMutationType = useTaskStore((state) => state.activeTaskMutationType);
@@ -65,9 +67,13 @@ export default function TasksScreen() {
             void (async () => {
               await retryConnection();
               await fetchTasks();
+              showSuccess('Connection restored. Tasks refreshed.');
             })()
           }
-          onOfflineMode={goOfflineMode}
+          onOfflineMode={() => {
+            goOfflineMode();
+            showInfo('Offline mode enabled.');
+          }}
         />
       </SafeAreaView>
     );
@@ -76,11 +82,25 @@ export default function TasksScreen() {
   const showInitialLoading = (isCheckingConnection || isFetchingList) && tasks.length === 0;
 
   const handleDeleteTask = (taskId: string) => {
-    void deleteTask(taskId);
+    void (async () => {
+      try {
+        await deleteTask(taskId);
+        showSuccess('Task deleted successfully.');
+      } catch (error) {
+        showError(error instanceof Error ? error.message : 'Unable to delete task');
+      }
+    })();
   };
 
   const handleCompleteTask = (taskId: string) => {
-    void completeTask(taskId);
+    void (async () => {
+      try {
+        await completeTask(taskId);
+        showInfo('Task marked as completed.');
+      } catch (error) {
+        showError(error instanceof Error ? error.message : 'Unable to update task status');
+      }
+    })();
   };
 
   return (

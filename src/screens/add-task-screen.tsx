@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DueDateInput } from '../components/due-date-input';
 import { buildTheme } from '../constants/theme/build-theme';
 import { useThemeMode } from '../hooks/use-theme-mode';
+import { useToast } from '../hooks/use-toast';
 import { useTaskStore } from '../store/task-store';
 import { TASK_PRIORITIES } from '../types/task';
 import { mapTaskFormValuesToInput, taskFormDefaults, taskFormSchema, TaskFormValues } from '../utils/task-form';
@@ -25,6 +26,7 @@ import { mapTaskFormValuesToInput, taskFormDefaults, taskFormSchema, TaskFormVal
 export default function AddTaskScreen() {
   const { mode } = useThemeMode();
   const theme = useMemo(() => buildTheme(mode), [mode]);
+  const { showError, showSuccess } = useToast();
   const addTask = useTaskStore((state) => state.addTask);
   const isCreatingTask = useTaskStore((state) => state.isCreatingTask);
   const [showPriorityOptions, setShowPriorityOptions] = useState(false);
@@ -47,6 +49,7 @@ export default function AddTaskScreen() {
 
     try {
       await addTask(mapTaskFormValuesToInput(values));
+      showSuccess('Task created successfully.');
 
       router.replace('/tasks');
     } catch (error) {
@@ -54,10 +57,12 @@ export default function AddTaskScreen() {
 
       if (message === 'Priority is required') {
         setError('priority', { message, type: 'required' });
+        showError(message);
         return;
       }
 
       setError('root', { message, type: 'server' });
+      showError(message);
     }
   });
 
