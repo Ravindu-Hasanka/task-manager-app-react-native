@@ -14,7 +14,9 @@ import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Swipeable } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { parseDueDate } from '../components/due-date-input.shared';
 import { TaskLoadErrorState } from '../components/task-load-error-state';
+import { TaskDateFilterInput } from '../components/task-date-filter-input';
 import { TaskListLoadingState } from '../components/task-list-loading-state';
 import { TaskSearchEmptyState } from '../components/task-search-empty-state';
 import { TaskSyncStatus } from '../components/task-sync-status';
@@ -24,14 +26,16 @@ import {
   getTaskStatusLabel,
   isTaskCompleted,
   matchesTaskFilter,
+  matchesTaskPickedDate,
   matchesTaskSearch,
+  sortTasksByDueDate,
 } from '../utils/task-ui';
 import { buildTheme } from '../constants/theme/build-theme';
 import { useTaskConnection } from '../hooks/use-task-connection';
 import { useThemeMode } from '../hooks/use-theme-mode';
 import { useToast } from '../hooks/use-toast';
 import { useTaskStore } from '../store/task-store';
-import { Filter } from '../types/task-filter';
+import { Filter, TaskSortOrder } from '../types/task-filter';
 import { Task } from '../types/task';
 
 export default function TasksScreen() {
@@ -50,14 +54,24 @@ export default function TasksScreen() {
   const tasks = useTaskStore((state) => state.tasks);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
+  const [pickedDate, setPickedDate] = useState('');
+  const [sortOrder, setSortOrder] = useState<TaskSortOrder>('due-asc');
+  const selectedDate = useMemo(() => parseDueDate(pickedDate), [pickedDate]);
 
   useEffect(() => {
     void fetchTasks();
   }, [fetchTasks]);
 
-  const filteredTasks = tasks.filter(
-    (task) => matchesTaskSearch(task, search) && matchesTaskFilter(task, filter)
-  );
+  const filteredTasks = useMemo(() => {
+    const nextTasks = tasks.filter(
+      (task) =>
+        matchesTaskSearch(task, search) &&
+        matchesTaskFilter(task, filter) &&
+        matchesTaskPickedDate(task, selectedDate)
+    );
+
+    return sortTasksByDueDate(nextTasks, sortOrder);
+  }, [filter, search, selectedDate, sortOrder, tasks]);
 
   if (initialLoadFailed) {
     return (
@@ -176,6 +190,44 @@ export default function TasksScreen() {
               />
             </View>
 
+            <View style={styles.sectionHeaderRow}>
+              <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>Due Date</Text>
+              <Text style={[styles.sectionHint, { color: theme.textSecondary }]}>
+                Pick a date to filter
+              </Text>
+            </View>
+
+            <TaskDateFilterInput
+              mode={mode}
+              onChange={setPickedDate}
+              onClear={() => setPickedDate('')}
+              theme={theme}
+              value={pickedDate}
+            />
+
+            <View
+              style={[
+                styles.sortRow,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.cardBorder,
+                },
+              ]}
+            >
+              <SortOption
+                active={sortOrder === 'due-asc'}
+                label="Soonest First"
+                onPress={() => setSortOrder('due-asc')}
+                theme={theme}
+              />
+              <SortOption
+                active={sortOrder === 'due-desc'}
+                label="Latest First"
+                onPress={() => setSortOrder('due-desc')}
+                theme={theme}
+              />
+            </View>
+
             <View style={styles.listHeader}>
               <Text style={[styles.listTitle, { color: theme.textPrimary }]}>
                 {filteredTasks.length} task{filteredTasks.length === 1 ? '' : 's'}
@@ -197,8 +249,26 @@ export default function TasksScreen() {
                 onBrowseAll={() => {
                   setSearch('');
                   setFilter('all');
+                  setPickedDate('');
                 }}
               />
+            ) : filteredTasks.length === 0 ? (
+              <View
+                style={[
+                  styles.emptyStateCard,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.cardBorder,
+                  },
+                ]}
+              >
+                <Text style={[styles.emptyStateTitle, { color: theme.textPrimary }]}>
+                  No matching tasks
+                </Text>
+                <Text style={[styles.emptyStateText, { color: theme.textSecondary }]}>
+                  Try another picked date or change the due date sorting to see more tasks.
+                </Text>
+              </View>
             ) : (
               filteredTasks.map((task) => (
                 <TaskCard
@@ -246,6 +316,32 @@ const FilterChip = ({
     ]}
   >
     <Text style={[styles.filterChipText, { color: active ? '#FFFFFF' : theme.textSecondary }]}>
+      {label}
+    </Text>
+  </TouchableOpacity>
+);
+
+const SortOption = ({
+  active,
+  label,
+  onPress,
+  theme,
+}: {
+  active: boolean;
+  label: string;
+  onPress: () => void;
+  theme: ReturnType<typeof buildTheme>;
+}) => (
+  <TouchableOpacity
+    onPress={onPress}
+    style={[
+      styles.sortOption,
+      {
+        backgroundColor: active ? theme.blue : 'transparent',
+      },
+    ]}
+  >
+    <Text style={[styles.sortOptionText, { color: active ? '#FFFFFF' : theme.textSecondary }]}>
       {label}
     </Text>
   </TouchableOpacity>
@@ -430,7 +526,23 @@ const styles = StyleSheet.create({
   filterRow: {
     flexDirection: 'row',
     gap: 10,
-    marginBottom: 24,
+    marginBottom: 14,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  sectionLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  sectionHint: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   filterChip: {
     flex: 1,
@@ -443,6 +555,24 @@ const styles = StyleSheet.create({
   filterChipText: {
     fontSize: 14,
     fontWeight: '700',
+  },
+  sortRow: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 4,
+    flexDirection: 'row',
+    marginBottom: 24,
+  },
+  sortOption: {
+    flex: 1,
+    height: 42,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sortOptionText: {
+    fontSize: 13,
+    fontWeight: '800',
   },
   listHeader: {
     marginBottom: 18,
@@ -563,5 +693,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     marginLeft: 8,
+  },
+  emptyStateCard: {
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    alignItems: 'center',
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+  emptyStateText: {
+    fontSize: 14,
+    fontWeight: '500',
+    lineHeight: 22,
+    textAlign: 'center',
   },
 });
