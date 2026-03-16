@@ -1,14 +1,14 @@
 import { router, usePathname, Tabs } from 'expo-router';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BottomNav } from '@/components/bottom-navbar';
-import { buildTheme } from '@/constants/theme/build-theme';
-import { OfflineBanner } from '@/components/offline-banner';
-import { useTaskConnection } from '@/hooks/use-task-connection';
-import { useThemeMode } from '@/hooks/use-theme-mode';
-import { Header } from '@/components/header';
+import { BottomNav } from '../../src/components/bottom-navbar';
+import { buildTheme } from '../../src/constants/theme/build-theme';
+import { OfflineBanner } from '../../src/components/offline-banner';
+import { useTaskConnection } from '../../src/hooks/use-task-connection';
+import { useThemeMode } from '../../src/hooks/use-theme-mode';
+import { Header } from '../../src/components/header';
 
 export const unstable_settings = {
   initialRouteName: 'index',
@@ -21,13 +21,16 @@ export default function TabLayout() {
 function TabsShell() {
   const { mode, toggleTheme } = useThemeMode();
   const { initialLoadFailed, retryConnection, showOfflineBanner } = useTaskConnection();
-  const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const theme = buildTheme(mode);
   const isTasksScreen = pathname === '/tasks';
 
   return (
     <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
+      {showOfflineBanner && !initialLoadFailed && (
+        <OfflineBanner theme={theme} onRetry={() => void retryConnection()} />
+      )}
+
       <View style={styles.headerContainer}>
         {isTasksScreen ? (
           <Header
@@ -41,10 +44,6 @@ function TabsShell() {
         )}
       </View>
 
-      {showOfflineBanner && !initialLoadFailed && (
-        <OfflineBanner theme={theme} onRetry={() => void retryConnection()} />
-      )}
-
       <View style={styles.tabsContainer}>
         <Tabs
           initialRouteName="index"
@@ -55,7 +54,8 @@ function TabsShell() {
               backgroundColor: theme.background,
               paddingBottom: 0,
             },
-          }}>
+          }}
+        >
           <Tabs.Screen name="index" />
           <Tabs.Screen name="tasks" />
         </Tabs>

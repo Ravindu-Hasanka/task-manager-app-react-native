@@ -1,50 +1,178 @@
-# Welcome to your Expo app 👋
+# Task Manage App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Task Manage App is an Expo + React Native assessment project for managing daily work with a clean mobile-first task flow. The app supports task listing, search, filtering, add/edit/delete, swipe actions, progress tracking, light/dark mode, offline awareness, and API-backed persistence.
 
-## Get started
+## Tech Stack
 
-1. Install dependencies
+- Expo Router
+- React Native
+- TypeScript
+- Zustand
+- React Hook Form
+- Yup
+- Axios
+- `@react-native-community/datetimepicker`
+- `@react-native-community/netinfo`
 
-   ```bash
-   npm install
-   ```
+## Features
 
-2. Start the app
+- Dashboard with summary cards and task progress
+- Search and status filtering
+- Add task form with validation
+- Edit task form with validation
+- Native date and time input for due dates
+- Task details view
+- Swipe to complete and delete
+- API-backed create, update, complete, and delete flows
+- Offline banner and retry flow
+- Light and dark theme support
 
-   ```bash
-   npx expo start
-   ```
+## Project Structure
 
-In the output, you'll find options to open the app in a
+The app uses `app/` for Expo Router entry files and `src/` for the application architecture.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```text
+app/
+  (tabs)/
+  task/
+  add-task.tsx
+  _layout.tsx
+src/
+  api/
+  assets/
+  components/
+  constants/
+  hooks/
+  navigation/
+  screens/
+  store/
+  types/
+  utils/
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Getting Started
 
-## Learn more
+### Prerequisites
 
-To learn more about developing your project with Expo, look at the following resources:
+- Node.js 20+
+- npm 10+
+- Expo CLI via `npx expo`
+- Android Studio emulator, iOS simulator, or Expo Go
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Install Dependencies
 
-## Join the community
+```bash
+npm install
+```
 
-Join our community of developers creating universal apps.
+### Environment Setup
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+The API base URL is configured through an Expo env file.
+
+Default local setup:
+
+```bash
+.env
+```
+
+Required variable:
+
+```bash
+EXPO_PUBLIC_API_BASE_URL=https://60a21a08745cd70017576014.mockapi.io/api/v1
+```
+
+An example is also included in:
+
+```bash
+.env.example
+```
+
+### Run the App
+
+Start the Expo development server:
+
+```bash
+npm run start
+```
+
+Open a target platform with one of these commands:
+
+```bash
+npm run android
+npm run ios
+npm run web
+```
+
+## Quality Checks
+
+Run linting:
+
+```bash
+npm run lint
+```
+
+Run TypeScript checks:
+
+```bash
+npm run typecheck
+```
+
+## API
+
+The app reads the mock API base URL from `EXPO_PUBLIC_API_BASE_URL` in the project `.env` file.
+
+Supported endpoints:
+
+- `GET /todo`
+- `GET /todo/:id`
+- `POST /todo`
+- `PUT /todo/:id`
+- `DELETE /todo/:id`
+
+Axios response interceptors normalize API, timeout, and offline errors into consistent user-facing messages before they reach the store and screens.
+
+## Form Validation
+
+Task forms are built with React Hook Form and Yup. Both add and edit screens validate:
+
+- Title
+- Description
+- Category
+- Due date and time
+- Priority
+
+Shared form rules live in `src/utils/task-form.ts`.
+
+## Offline Behavior
+
+- Network state is tracked with NetInfo
+- The offline banner appears above the tab header
+- Initial offline launch shows a full retry screen
+- Existing task data remains visible when the device goes offline after a successful load
+
+## Deployment
+
+### Local Android Build
+
+For a local native build, prebuild the project and generate Android output:
+
+```bash
+npx expo prebuild
+```
+
+Then open `android/` in Android Studio and create an APK or AAB from the generated native project.
+
+### Expo / EAS Build
+
+If you want a cloud build flow, install the EAS CLI and run:
+
+```bash
+npx eas build -p android
+```
+
+This is the recommended path for generating a shareable Android artifact during submission prep.
+
+## Notes
+
+- `app/` is still required because the project uses Expo Router.
+- The main application code lives in `src/` so routing stays thin and features stay organized.
