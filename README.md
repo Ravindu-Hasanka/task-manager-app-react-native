@@ -65,6 +65,28 @@ src/
 npm install
 ```
 
+### Environment Setup
+
+The API base URL is configured through an Expo env file.
+
+Default local setup:
+
+```bash
+.env
+```
+
+Required variable:
+
+```bash
+EXPO_PUBLIC_API_BASE_URL=https://60a21a08745cd70017576014.mockapi.io/api/v1
+```
+
+An example is also included in:
+
+```bash
+.env.example
+```
+
 ### Run the App
 
 Start the Expo development server:
@@ -97,7 +119,7 @@ npm run typecheck
 
 ## API
 
-The app uses the mock API base URL configured in `src/api/axiosInstance.ts`.
+The app reads the mock API base URL from `EXPO_PUBLIC_API_BASE_URL` in the project `.env` file.
 
 Supported endpoints:
 

@@ -134,6 +134,7 @@ src/assets/           Images and static assets
 - Light and dark theme support
 
 ## 4. Designs
+
 ### 4.1 High-Fidelity Direction
 
 The implemented UI follows a clinical productivity style with:
@@ -242,6 +243,3 @@ The current structure can be extended to support:
 - Task categories and tags from backend-managed data
 - Analytics dashboards
 - Pagination and caching
-
-
-
