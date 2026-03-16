@@ -2,8 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { router } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -19,28 +19,8 @@ import { DueDateInput } from '../components/due-date-input';
 import { buildTheme } from '../constants/theme/build-theme';
 import { useThemeMode } from '../hooks/use-theme-mode';
 import { useTaskStore } from '../store/task-store';
-import { CreateTaskInput, TASK_PRIORITIES, TaskPriority } from '../types/task';
-
-type AddTaskFormValues = Omit<CreateTaskInput, 'priority'> & {
-  priority: TaskPriority | undefined;
-};
-
-const addTaskSchema: yup.ObjectSchema<AddTaskFormValues> = yup.object({
-  title: yup.string().trim().required('Title is required'),
-  description: yup.string().trim().required('Description is required'),
-  category: yup.string().trim().required('Category is required'),
-  dueDate: yup
-    .string()
-    .required('Due date is required')
-    .test('valid-date', 'Please choose a valid date and time', (value) => {
-      if (!value) {
-        return false;
-      }
-
-      return !Number.isNaN(Date.parse(value));
-    }),
-  priority: yup.mixed<TaskPriority>().oneOf(TASK_PRIORITIES).required('Priority is required'),
-});
+import { TASK_PRIORITIES } from '../types/task';
+import { mapTaskFormValuesToInput, taskFormDefaults, taskFormSchema, TaskFormValues } from '../utils/task-form';
 
 export default function AddTaskScreen() {
   const { mode } = useThemeMode();
@@ -54,43 +34,30 @@ export default function AddTaskScreen() {
     formState: { errors, isSubmitting },
     handleSubmit,
     setError,
-  } = useForm<AddTaskFormValues, unknown, yup.InferType<typeof addTaskSchema>>({
-    defaultValues: {
-      title: '',
-      description: '',
-      category: '',
-      dueDate: '',
-      priority: undefined,
-    },
+  } = useForm<TaskFormValues, unknown, TaskFormValues>({
+    defaultValues: taskFormDefaults,
     mode: 'onTouched',
-    resolver: yupResolver(addTaskSchema),
+    resolver: yupResolver(taskFormSchema),
   });
 
   const isSaving = isSubmitting || isCreatingTask;
 
   const handleSave = handleSubmit(async (values) => {
-    if (!values.priority) {
-      setError('priority', { message: 'Priority is required', type: 'required' });
-      return;
-    }
-
     clearErrors('root');
 
     try {
-      await addTask({
-        title: values.title,
-        description: values.description,
-        category: values.category,
-        dueDate: values.dueDate,
-        priority: values.priority,
-      });
+      await addTask(mapTaskFormValuesToInput(values));
 
       router.replace('/tasks');
     } catch (error) {
-      setError('root', {
-        message: error instanceof Error ? error.message : 'Unable to create task right now',
-        type: 'server',
-      });
+      const message = error instanceof Error ? error.message : 'Unable to create task right now';
+
+      if (message === 'Priority is required') {
+        setError('priority', { message, type: 'required' });
+        return;
+      }
+
+      setError('root', { message, type: 'server' });
     }
   });
 
@@ -309,7 +276,11 @@ export default function AddTaskScreen() {
             },
           ]}
         >
-          <Ionicons name="checkmark-circle-outline" size={22} color="#FFFFFF" />
+          {isSaving ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Ionicons name="checkmark-circle-outline" size={22} color="#FFFFFF" />
+          )}
           <Text style={styles.saveButtonText}>{isSaving ? 'Saving Task...' : 'Save Task'}</Text>
         </TouchableOpacity>
       </View>
@@ -447,4 +418,3 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
 });
-

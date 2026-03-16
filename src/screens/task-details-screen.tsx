@@ -1,9 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { TaskScreenLoadingState } from '../components/task-screen-loading-state';
 import {
   getTaskDueLabel,
   getTaskPriorityLabel,
@@ -19,17 +29,20 @@ export default function TaskDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { mode } = useThemeMode();
   const theme = useMemo(() => buildTheme(mode), [mode]);
+  const activeTaskMutationId = useTaskStore((state) => state.activeTaskMutationId);
+  const activeTaskMutationType = useTaskStore((state) => state.activeTaskMutationType);
   const completeTask = useTaskStore((state) => state.completeTask);
   const deleteTask = useTaskStore((state) => state.deleteTask);
-  const isDeletingTask = useTaskStore((state) => state.isDeletingTask);
   const fetchTaskById = useTaskStore((state) => state.fetchTaskById);
   const isFetchingTask = useTaskStore((state) => state.isFetchingTask);
-  const isUpdatingTask = useTaskStore((state) => state.isUpdatingTask);
   const tasks = useTaskStore((state) => state.tasks);
   const task = tasks.find((item) => item.id === id);
   const [completed, setCompleted] = useState(task ? isTaskCompleted(task) : false);
+  const [pendingCompletedValue, setPendingCompletedValue] = useState<boolean | null>(null);
   const [statusError, setStatusError] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const isDeletingCurrentTask = activeTaskMutationId === id && activeTaskMutationType === 'delete';
+  const isUpdatingCurrentTask = activeTaskMutationId === id && activeTaskMutationType === 'complete';
 
   useEffect(() => {
     if (id) {
@@ -40,6 +53,7 @@ export default function TaskDetailsScreen() {
   useEffect(() => {
     if (task) {
       setCompleted(isTaskCompleted(task));
+      setPendingCompletedValue(null);
     }
   }, [task]);
 
@@ -54,12 +68,11 @@ export default function TaskDetailsScreen() {
           <View style={styles.headerSpacer} />
         </View>
 
-        <View style={styles.emptyState}>
-          <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Loading task...</Text>
-          <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-            Fetching the latest task details from the server.
-          </Text>
-        </View>
+        <TaskScreenLoadingState
+          description="Fetching the latest task details from the server."
+          theme={theme}
+          title="Loading task..."
+        />
       </SafeAreaView>
     );
   }
@@ -103,12 +116,15 @@ export default function TaskDetailsScreen() {
 
   const handleStatusChange = async (nextCompleted: boolean) => {
     setStatusError('');
+    setPendingCompletedValue(nextCompleted);
 
     try {
       await completeTask(task.id, nextCompleted);
       setCompleted(nextCompleted);
     } catch (error) {
       setStatusError(error instanceof Error ? error.message : 'Unable to update task status');
+    } finally {
+      setPendingCompletedValue(null);
     }
   };
 
@@ -169,46 +185,54 @@ export default function TaskDetailsScreen() {
             ]}
           >
             <TouchableOpacity
-              disabled={isUpdatingTask}
+              disabled={isUpdatingCurrentTask || isDeletingCurrentTask}
               onPress={() => void handleStatusChange(false)}
               style={[
                 styles.statusOption,
                 {
                   backgroundColor: !completed ? theme.blue : 'transparent',
                   borderColor: 'transparent',
-                  opacity: isUpdatingTask ? 0.72 : 1,
+                  opacity: isUpdatingCurrentTask || isDeletingCurrentTask ? 0.72 : 1,
                 },
               ]}
             >
-              <Ionicons
-                name="time-outline"
-                size={18}
-                color={!completed ? '#FFFFFF' : theme.textSecondary}
-              />
+              {isUpdatingCurrentTask && pendingCompletedValue === false ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Ionicons
+                  name="time-outline"
+                  size={18}
+                  color={!completed ? '#FFFFFF' : theme.textSecondary}
+                />
+              )}
               <Text style={[styles.statusOptionText, { color: !completed ? '#FFFFFF' : theme.textSecondary }]}>
-                Pending
+                {isUpdatingCurrentTask && pendingCompletedValue === false ? 'Updating...' : 'Pending'}
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              disabled={isUpdatingTask}
+              disabled={isUpdatingCurrentTask || isDeletingCurrentTask}
               onPress={() => void handleStatusChange(true)}
               style={[
                 styles.statusOption,
                 {
                   backgroundColor: completed ? theme.blue : 'transparent',
                   borderColor: 'transparent',
-                  opacity: isUpdatingTask ? 0.72 : 1,
+                  opacity: isUpdatingCurrentTask || isDeletingCurrentTask ? 0.72 : 1,
                 },
               ]}
             >
-              <Ionicons
-                name="checkmark-circle-outline"
-                size={18}
-                color={completed ? '#FFFFFF' : theme.textSecondary}
-              />
+              {isUpdatingCurrentTask && pendingCompletedValue === true ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={18}
+                  color={completed ? '#FFFFFF' : theme.textSecondary}
+                />
+              )}
               <Text style={[styles.statusOptionText, { color: completed ? '#FFFFFF' : theme.textSecondary }]}>
-                Completed
+                {isUpdatingCurrentTask && pendingCompletedValue === true ? 'Updating...' : 'Completed'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -225,6 +249,7 @@ export default function TaskDetailsScreen() {
 
       <View style={[styles.footer, { backgroundColor: mode === 'dark' ? '#111827' : '#EEF3FF', borderTopColor: theme.cardBorder }]}>
         <TouchableOpacity
+          disabled={isDeletingCurrentTask || isUpdatingCurrentTask}
           onPress={() =>
             router.push({
               pathname: '/task/[id]/edit',
@@ -234,7 +259,11 @@ export default function TaskDetailsScreen() {
           style={[
             styles.footerButton,
             styles.editButton,
-            { borderColor: theme.blue, backgroundColor: mode === 'dark' ? 'transparent' : '#F4F8FF' },
+            {
+              borderColor: theme.blue,
+              backgroundColor: mode === 'dark' ? 'transparent' : '#F4F8FF',
+              opacity: isDeletingCurrentTask || isUpdatingCurrentTask ? 0.72 : 1,
+            },
           ]}
         >
           <Ionicons name="create-outline" size={20} color={theme.blue} />
@@ -242,11 +271,22 @@ export default function TaskDetailsScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.footerButton, styles.deleteButton]}
+          disabled={isDeletingCurrentTask || isUpdatingCurrentTask}
+          style={[
+            styles.footerButton,
+            styles.deleteButton,
+            { opacity: isDeletingCurrentTask || isUpdatingCurrentTask ? 0.72 : 1 },
+          ]}
           onPress={() => setShowDeleteConfirm(true)}
         >
-          <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
-          <Text style={styles.deleteButtonText}>Delete Task</Text>
+          {isDeletingCurrentTask ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
+          )}
+          <Text style={styles.deleteButtonText}>
+            {isDeletingCurrentTask ? 'Deleting...' : 'Delete Task'}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -290,23 +330,31 @@ export default function TaskDetailsScreen() {
             </Text>
 
             <TouchableOpacity
-              disabled={isDeletingTask}
+              disabled={isDeletingCurrentTask}
               style={[
                 styles.confirmDeleteButton,
                 styles.deleteButton,
-                { opacity: isDeletingTask ? 0.72 : 1 },
+                { opacity: isDeletingCurrentTask ? 0.72 : 1 },
               ]}
               onPress={handleDelete}
             >
-              <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
-              <Text style={styles.deleteButtonText}>{isDeletingTask ? 'Deleting...' : 'Delete Task'}</Text>
+              {isDeletingCurrentTask ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
+              )}
+              <Text style={styles.deleteButtonText}>
+                {isDeletingCurrentTask ? 'Deleting...' : 'Delete Task'}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
+              disabled={isDeletingCurrentTask}
               onPress={() => setShowDeleteConfirm(false)}
               style={[
                 styles.confirmCancelButton,
                 { backgroundColor: mode === 'dark' ? '#273246' : theme.blue },
+                { opacity: isDeletingCurrentTask ? 0.72 : 1 },
               ]}
             >
               <Text style={styles.confirmCancelText}>Cancel</Text>
@@ -528,4 +576,3 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 });
-

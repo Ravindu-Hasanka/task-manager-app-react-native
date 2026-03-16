@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Controller, useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
 import {
+  ActivityIndicator,
   Modal,
   Pressable,
   ScrollView,
@@ -13,36 +16,45 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { DueDateInput } from '../components/due-date-input';
+import { TaskScreenLoadingState } from '../components/task-screen-loading-state';
 import { getTaskCreatedLabel } from '../utils/task-ui';
 import { buildTheme } from '../constants/theme/build-theme';
 import { useThemeMode } from '../hooks/use-theme-mode';
 import { useTaskStore } from '../store/task-store';
-import { Task } from '../types/task';
-
-const PRIORITY_OPTIONS: { label: string; value: Task['priority'] }[] = [
-  { label: 'Low', value: 'Low' },
-  { label: 'Medium', value: 'Medium' },
-  { label: 'High', value: 'High' },
-];
+import { TASK_PRIORITIES } from '../types/task';
+import { mapTaskFormValuesToInput, taskFormDefaults, taskFormSchema, TaskFormValues } from '../utils/task-form';
 
 export default function EditTaskScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { mode } = useThemeMode();
   const theme = useMemo(() => buildTheme(mode), [mode]);
+  const activeTaskMutationId = useTaskStore((state) => state.activeTaskMutationId);
+  const activeTaskMutationType = useTaskStore((state) => state.activeTaskMutationType);
   const deleteTask = useTaskStore((state) => state.deleteTask);
   const fetchTaskById = useTaskStore((state) => state.fetchTaskById);
-  const isDeletingTask = useTaskStore((state) => state.isDeletingTask);
   const isFetchingTask = useTaskStore((state) => state.isFetchingTask);
-  const isUpdatingTask = useTaskStore((state) => state.isUpdatingTask);
   const tasks = useTaskStore((state) => state.tasks);
   const updateTask = useTaskStore((state) => state.updateTask);
   const task = tasks.find((item) => item.id === id);
-  const [title, setTitle] = useState(task?.title ?? '');
-  const [description, setDescription] = useState(task?.description ?? '');
-  const [category, setCategory] = useState(task?.category ?? '');
-  const [priority, setPriority] = useState<Task['priority']>(task?.priority ?? 'Low');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [formError, setFormError] = useState('');
+  const [showPriorityOptions, setShowPriorityOptions] = useState(false);
+  const {
+    clearErrors,
+    control,
+    formState: { errors, isSubmitting },
+    handleSubmit,
+    reset,
+    setError,
+  } = useForm<TaskFormValues, unknown, TaskFormValues>({
+    defaultValues: taskFormDefaults,
+    mode: 'onTouched',
+    resolver: yupResolver(taskFormSchema),
+  });
+
+  const isUpdatingCurrentTask = activeTaskMutationId === id && activeTaskMutationType === 'update';
+  const isDeletingCurrentTask = activeTaskMutationId === id && activeTaskMutationType === 'delete';
+  const isSaving = isSubmitting || isUpdatingCurrentTask;
 
   useEffect(() => {
     if (id) {
@@ -51,13 +63,18 @@ export default function EditTaskScreen() {
   }, [fetchTaskById, id]);
 
   useEffect(() => {
-    if (task) {
-      setTitle(task.title);
-      setDescription(task.description);
-      setCategory(task.category);
-      setPriority(task.priority);
+    if (!task) {
+      return;
     }
-  }, [task]);
+
+    reset({
+      title: task.title,
+      description: task.description,
+      category: task.category,
+      dueDate: task.dueDate,
+      priority: task.priority,
+    });
+  }, [reset, task]);
 
   if (!task && isFetchingTask) {
     return (
@@ -70,12 +87,11 @@ export default function EditTaskScreen() {
           <View style={styles.headerSpacer} />
         </View>
 
-        <View style={styles.emptyState}>
-          <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Loading task...</Text>
-          <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-            Fetching the latest task details from the server.
-          </Text>
-        </View>
+        <TaskScreenLoadingState
+          description="Fetching the latest task details from the server."
+          theme={theme}
+          title="Loading task..."
+        />
       </SafeAreaView>
     );
   }
@@ -101,29 +117,13 @@ export default function EditTaskScreen() {
     );
   }
 
-  const handleUpdate = async () => {
-    if (!title.trim()) {
-      setFormError('Task title is required');
-      return;
-    }
-
-    if (!description.trim()) {
-      setFormError('Description is required');
-      return;
-    }
-
-    if (!category.trim()) {
-      setFormError('Category is required');
-      return;
-    }
+  const handleUpdate = handleSubmit(async (values) => {
+    clearErrors('root');
 
     try {
       const updatedTask = await updateTask({
         ...task,
-        title: title.trim(),
-        description: description.trim(),
-        category: category.trim(),
-        priority,
+        ...mapTaskFormValuesToInput(values),
       });
 
       router.replace({
@@ -131,16 +131,26 @@ export default function EditTaskScreen() {
         params: { id: updatedTask.id },
       });
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : 'Unable to update task');
+      const message = error instanceof Error ? error.message : 'Unable to update task';
+
+      if (message === 'Priority is required') {
+        setError('priority', { message, type: 'required' });
+        return;
+      }
+
+      setError('root', { message, type: 'server' });
     }
-  };
+  });
 
   const handleDelete = async () => {
     try {
       await deleteTask(task.id);
       router.replace('/tasks');
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : 'Unable to delete task');
+      setError('root', {
+        message: error instanceof Error ? error.message : 'Unable to delete task',
+        type: 'server',
+      });
       setShowDeleteConfirm(false);
     }
   };
@@ -155,90 +165,186 @@ export default function EditTaskScreen() {
         <View style={styles.headerSpacer} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <FieldLabel label="TASK TITLE" color={theme.textSecondary} />
-        <TextInput
-          value={title}
-          onChangeText={(value) => {
-            setTitle(value);
-            setFormError('');
-          }}
-          placeholder="Enter task title"
-          placeholderTextColor={theme.textSecondary}
-          style={[
-            styles.input,
-            {
-              backgroundColor: theme.card,
-              borderColor: theme.cardBorder,
-              color: theme.textPrimary,
-            },
-          ]}
-        />
-
-        <FieldLabel label="DESCRIPTION" color={theme.textSecondary} />
-        <TextInput
-          value={description}
-          onChangeText={(value) => {
-            setDescription(value);
-            setFormError('');
-          }}
-          placeholder="Enter task description"
-          placeholderTextColor={theme.textSecondary}
-          multiline
-          textAlignVertical="top"
-          style={[
-            styles.input,
-            styles.descriptionInput,
-            {
-              backgroundColor: theme.card,
-              borderColor: theme.cardBorder,
-              color: theme.textPrimary,
-            },
-          ]}
-        />
-
-        <FieldLabel label="CATEGORY" color={theme.textSecondary} />
-        <TextInput
-          value={category}
-          onChangeText={(value) => {
-            setCategory(value);
-            setFormError('');
-          }}
-          placeholder="Enter category"
-          placeholderTextColor={theme.textSecondary}
-          style={[
-            styles.input,
-            {
-              backgroundColor: theme.card,
-              borderColor: theme.cardBorder,
-              color: theme.textPrimary,
-            },
-          ]}
-        />
-
-        <FieldLabel label="PRIORITY LEVEL" color={theme.textSecondary} />
-        <View style={[styles.priorityGroup, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
-          {PRIORITY_OPTIONS.map((option) => {
-            const active = priority === option.value;
-
-            return (
-              <TouchableOpacity
-                key={option.value}
-                onPress={() => setPriority(option.value)}
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Controller
+          control={control}
+          name="title"
+          render={({ field: { onBlur, onChange, value } }) => (
+            <View style={styles.fieldBlock}>
+              <FieldLabel label="Title" color={theme.textPrimary} />
+              <TextInput
+                value={value}
+                onBlur={onBlur}
+                onChangeText={(nextValue) => {
+                  onChange(nextValue);
+                  clearErrors('root');
+                }}
+                placeholder="Enter task title"
+                placeholderTextColor={theme.textSecondary}
                 style={[
-                  styles.priorityOption,
+                  styles.input,
                   {
-                    backgroundColor: active ? theme.blue : 'transparent',
+                    backgroundColor: theme.card,
+                    borderColor: errors.title ? '#FF4D4F' : theme.cardBorder,
+                    color: theme.textPrimary,
+                  },
+                ]}
+              />
+              <FieldError message={errors.title?.message} />
+            </View>
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="description"
+          render={({ field: { onBlur, onChange, value } }) => (
+            <View style={styles.fieldBlock}>
+              <FieldLabel label="Description" color={theme.textPrimary} />
+              <TextInput
+                value={value}
+                onBlur={onBlur}
+                onChangeText={(nextValue) => {
+                  onChange(nextValue);
+                  clearErrors('root');
+                }}
+                placeholder="Enter task description"
+                placeholderTextColor={theme.textSecondary}
+                multiline
+                textAlignVertical="top"
+                style={[
+                  styles.input,
+                  styles.descriptionInput,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: errors.description ? '#FF4D4F' : theme.cardBorder,
+                    color: theme.textPrimary,
+                  },
+                ]}
+              />
+              <FieldError message={errors.description?.message} />
+            </View>
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="category"
+          render={({ field: { onBlur, onChange, value } }) => (
+            <View style={styles.fieldBlock}>
+              <FieldLabel label="Category" color={theme.textPrimary} />
+              <TextInput
+                value={value}
+                onBlur={onBlur}
+                onChangeText={(nextValue) => {
+                  onChange(nextValue);
+                  clearErrors('root');
+                }}
+                placeholder="Enter task category"
+                placeholderTextColor={theme.textSecondary}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: errors.category ? '#FF4D4F' : theme.cardBorder,
+                    color: theme.textPrimary,
+                  },
+                ]}
+              />
+              <FieldError message={errors.category?.message} />
+            </View>
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="dueDate"
+          render={({ field: { onBlur, onChange, value } }) => (
+            <View style={styles.fieldBlock}>
+              <FieldLabel label="Due Date & Time" color={theme.textPrimary} />
+              <DueDateInput
+                hasError={Boolean(errors.dueDate)}
+                mode={mode}
+                onBlur={onBlur}
+                onChange={(nextValue) => {
+                  onChange(nextValue);
+                  clearErrors('dueDate');
+                  clearErrors('root');
+                }}
+                theme={theme}
+                value={value}
+              />
+              <FieldError message={errors.dueDate?.message} />
+            </View>
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="priority"
+          render={({ field: { onChange, value } }) => (
+            <View style={styles.fieldBlock}>
+              <FieldLabel label="Priority" color={theme.textPrimary} />
+              <Pressable
+                onPress={() => setShowPriorityOptions((current) => !current)}
+                style={[
+                  styles.input,
+                  styles.selectInput,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: errors.priority ? '#FF4D4F' : theme.cardBorder,
                   },
                 ]}
               >
-                <Text style={[styles.priorityOptionText, { color: active ? '#FFFFFF' : theme.textSecondary }]}>
-                  {option.label}
+                <Text
+                  style={[
+                    styles.selectText,
+                    { color: value ? theme.textPrimary : theme.textSecondary },
+                  ]}
+                >
+                  {value || 'Select priority level'}
                 </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+                <Ionicons
+                  name={showPriorityOptions ? 'chevron-up' : 'chevron-down'}
+                  size={20}
+                  color={theme.textSecondary}
+                />
+              </Pressable>
+
+              {showPriorityOptions && (
+                <View
+                  style={[
+                    styles.priorityList,
+                    { backgroundColor: theme.card, borderColor: theme.cardBorder },
+                  ]}
+                >
+                  {TASK_PRIORITIES.map((item) => (
+                    <Pressable
+                      key={item}
+                      onPress={() => {
+                        onChange(item);
+                        clearErrors('priority');
+                        clearErrors('root');
+                        setShowPriorityOptions(false);
+                      }}
+                      style={styles.priorityOption}
+                    >
+                      <Text style={[styles.priorityOptionText, { color: theme.textPrimary }]}>
+                        {item}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+
+              <FieldError message={errors.priority?.message} />
+            </View>
+          )}
+        />
 
         <View style={styles.metaRow}>
           <View style={styles.metaItem}>
@@ -247,19 +353,15 @@ export default function EditTaskScreen() {
               Created {getTaskCreatedLabel(task)}
             </Text>
           </View>
-
           <View style={styles.metaItem}>
-            <Ionicons name="folder-open-outline" size={18} color={theme.textSecondary} />
-            <Text style={[styles.metaText, { color: theme.textSecondary }]}>{category}</Text>
+            <Ionicons name="checkmark-circle-outline" size={18} color={theme.textSecondary} />
+            <Text style={[styles.metaText, { color: theme.textSecondary }]}>
+              {task.completed ? 'Completed task' : 'Pending task'}
+            </Text>
           </View>
         </View>
 
-        {formError.length > 0 && (
-          <View style={styles.errorRow}>
-            <Ionicons name="alert-circle-outline" size={16} color="#FF4D4F" />
-            <Text style={styles.errorText}>{formError}</Text>
-          </View>
-        )}
+        <FieldError message={errors.root?.message} />
       </ScrollView>
 
       <View
@@ -272,21 +374,29 @@ export default function EditTaskScreen() {
         ]}
       >
         <TouchableOpacity
-          disabled={isUpdatingTask}
+          disabled={isSaving || isDeletingCurrentTask}
           onPress={() => void handleUpdate()}
           style={[
             styles.updateButton,
             {
               backgroundColor: theme.blue,
-              opacity: isUpdatingTask ? 0.72 : 1,
+              opacity: isSaving || isDeletingCurrentTask ? 0.72 : 1,
             },
           ]}
         >
-          <Ionicons name="checkmark-circle-outline" size={22} color="#FFFFFF" />
-          <Text style={styles.updateButtonText}>{isUpdatingTask ? 'Updating Task...' : 'Update Task'}</Text>
+          {isSaving ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Ionicons name="checkmark-circle-outline" size={22} color="#FFFFFF" />
+          )}
+          <Text style={styles.updateButtonText}>{isSaving ? 'Updating Task...' : 'Update Task'}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => setShowDeleteConfirm(true)} style={styles.deleteTextButton}>
+        <TouchableOpacity
+          disabled={isSaving || isDeletingCurrentTask}
+          onPress={() => setShowDeleteConfirm(true)}
+          style={[styles.deleteTextButton, { opacity: isSaving || isDeletingCurrentTask ? 0.72 : 1 }]}
+        >
           <Ionicons name="trash-outline" size={18} color="#FF335C" />
           <Text style={styles.deleteText}>Delete Task</Text>
         </TouchableOpacity>
@@ -302,7 +412,10 @@ export default function EditTaskScreen() {
           onPress={() => setShowDeleteConfirm(false)}
           style={[
             styles.modalOverlay,
-            { backgroundColor: mode === 'dark' ? 'rgba(2, 6, 23, 0.78)' : 'rgba(148, 163, 184, 0.28)' },
+            {
+              backgroundColor:
+                mode === 'dark' ? 'rgba(2, 6, 23, 0.78)' : 'rgba(148, 163, 184, 0.28)',
+            },
           ]}
         >
           <Pressable
@@ -332,23 +445,33 @@ export default function EditTaskScreen() {
             </Text>
 
             <TouchableOpacity
-              disabled={isDeletingTask}
+              disabled={isDeletingCurrentTask}
               style={[
                 styles.confirmDeleteButton,
                 styles.confirmDangerButton,
-                { opacity: isDeletingTask ? 0.72 : 1 },
+                { opacity: isDeletingCurrentTask ? 0.72 : 1 },
               ]}
               onPress={() => void handleDelete()}
             >
-              <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
-              <Text style={styles.confirmDangerText}>{isDeletingTask ? 'Deleting...' : 'Delete Task'}</Text>
+              {isDeletingCurrentTask ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
+              )}
+              <Text style={styles.confirmDangerText}>
+                {isDeletingCurrentTask ? 'Deleting...' : 'Delete Task'}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
+              disabled={isDeletingCurrentTask}
               onPress={() => setShowDeleteConfirm(false)}
               style={[
                 styles.confirmCancelButton,
-                { backgroundColor: mode === 'dark' ? '#273246' : theme.blue },
+                {
+                  backgroundColor: mode === 'dark' ? '#273246' : theme.blue,
+                  opacity: isDeletingCurrentTask ? 0.72 : 1,
+                },
               ]}
             >
               <Text style={styles.confirmCancelText}>Cancel</Text>
@@ -362,6 +485,21 @@ export default function EditTaskScreen() {
 
 function FieldLabel({ label, color }: { label: string; color: string }) {
   return <Text style={[styles.label, { color }]}>{label}</Text>;
+}
+
+function FieldError({ message }: { message?: unknown }) {
+  const text = typeof message === 'string' ? message : undefined;
+
+  if (!text) {
+    return null;
+  }
+
+  return (
+    <View style={styles.errorRow}>
+      <Ionicons name="alert-circle-outline" size={16} color="#FF4D4F" />
+      <Text style={styles.errorText}>{text}</Text>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -389,51 +527,56 @@ const styles = StyleSheet.create({
     width: 32,
   },
   content: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     paddingTop: 24,
     paddingBottom: 32,
   },
+  fieldBlock: {
+    marginBottom: 24,
+  },
   label: {
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 1.1,
+    fontSize: 16,
+    fontWeight: '700',
     marginBottom: 12,
   },
   input: {
-    minHeight: 58,
+    minHeight: 54,
     borderWidth: 1,
     borderRadius: 14,
     paddingHorizontal: 16,
     fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 28,
   },
   descriptionInput: {
-    minHeight: 164,
+    minHeight: 160,
     paddingTop: 16,
   },
-  priorityGroup: {
-    height: 62,
+  selectInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  selectText: {
+    fontSize: 16,
+  },
+  priorityList: {
     borderWidth: 1,
     borderRadius: 14,
-    padding: 6,
-    flexDirection: 'row',
-    marginBottom: 22,
+    marginTop: 12,
+    overflow: 'hidden',
   },
   priorityOption: {
-    flex: 1,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
   priorityOptionText: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '600',
   },
   metaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 18,
+    marginBottom: 8,
   },
   metaItem: {
     flexDirection: 'row',
@@ -448,7 +591,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: 18,
+    marginTop: 8,
   },
   errorText: {
     color: '#FF4D4F',
@@ -457,12 +600,12 @@ const styles = StyleSheet.create({
   },
   footer: {
     borderTopWidth: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     paddingTop: 18,
     paddingBottom: 20,
   },
   updateButton: {
-    height: 64,
+    height: 58,
     borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
@@ -576,4 +719,3 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 });
-

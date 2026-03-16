@@ -1,6 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { buildTheme } from '../constants/theme/build-theme';
 
@@ -16,7 +15,7 @@ export function TaskSyncStatus({ theme }: { theme: ReturnType<typeof buildTheme>
           },
         ]}
       >
-        <Ionicons name="sync-outline" size={26} color={theme.blue} />
+        <ActivityIndicator color={theme.blue} />
       </View>
       <Text style={[styles.label, { color: theme.textSecondary }]}>Updating task list...</Text>
     </View>
