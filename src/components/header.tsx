@@ -60,7 +60,10 @@ export const Header = (props: HeaderProps) => {
       <View style={styles.headerActions}>
         <TouchableOpacity
           onPress={props.onThemeToggle}
-          style={[styles.themeButton, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}
+          style={[
+            styles.themeButton,
+            { backgroundColor: theme.card, borderColor: theme.cardBorder },
+          ]}
         >
           <Ionicons
             name={theme.mode === 'dark' ? 'sunny-outline' : 'moon-outline'}

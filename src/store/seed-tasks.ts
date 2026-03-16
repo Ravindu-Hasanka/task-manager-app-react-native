@@ -4,7 +4,8 @@ export const TASKS: Task[] = [
   {
     createdAt: '2025-12-14T08:20:00.000Z',
     title: 'Review Lab Results - ICU',
-    description: 'Check blood panel updates for Mr. Fernando and share the findings with the care team.',
+    description:
+      'Check blood panel updates for Mr. Fernando and share the findings with the care team.',
     id: '1',
     priority: 'High',
     completed: false,

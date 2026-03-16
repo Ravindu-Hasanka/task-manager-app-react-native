@@ -48,4 +48,3 @@ export async function updateTask(task: Task) {
 export async function deleteTask(id: string) {
   await apiClient.delete(`/todo/${id}`);
 }
-

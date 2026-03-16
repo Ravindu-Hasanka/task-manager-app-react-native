@@ -15,7 +15,9 @@ type TaskConnectionContextValue = {
 const TaskConnectionContext = createContext<TaskConnectionContextValue | null>(null);
 
 function resolveOnlineState(
-  state: Awaited<ReturnType<typeof NetInfo.fetch>> | { isConnected: boolean | null; isInternetReachable: boolean | null }
+  state:
+    | Awaited<ReturnType<typeof NetInfo.fetch>>
+    | { isConnected: boolean | null; isInternetReachable: boolean | null }
 ) {
   if (typeof state.isInternetReachable === 'boolean') {
     return state.isInternetReachable;

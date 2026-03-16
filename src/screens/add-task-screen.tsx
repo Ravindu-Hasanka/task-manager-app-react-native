@@ -21,7 +21,12 @@ import { useThemeMode } from '../hooks/use-theme-mode';
 import { useToast } from '../hooks/use-toast';
 import { useTaskStore } from '../store/task-store';
 import { TASK_PRIORITIES } from '../types/task';
-import { mapTaskFormValuesToInput, taskFormDefaults, taskFormSchema, TaskFormValues } from '../utils/task-form';
+import {
+  mapTaskFormValuesToInput,
+  taskFormDefaults,
+  taskFormSchema,
+  TaskFormValues,
+} from '../utils/task-form';
 
 export default function AddTaskScreen() {
   const { mode } = useThemeMode();

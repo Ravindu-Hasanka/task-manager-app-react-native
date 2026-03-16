@@ -39,7 +39,8 @@ export default function TasksScreen() {
   const theme = useMemo(() => buildTheme(mode), [mode]);
   const router = useRouter();
   const { showError, showInfo, showSuccess } = useToast();
-  const { goOfflineMode, initialLoadFailed, isCheckingConnection, isRefreshing, retryConnection } = useTaskConnection();
+  const { goOfflineMode, initialLoadFailed, isCheckingConnection, isRefreshing, retryConnection } =
+    useTaskConnection();
   const activeTaskMutationId = useTaskStore((state) => state.activeTaskMutationId);
   const activeTaskMutationType = useTaskStore((state) => state.activeTaskMutationType);
   const completeTask = useTaskStore((state) => state.completeTask);
@@ -60,7 +61,10 @@ export default function TasksScreen() {
 
   if (initialLoadFailed) {
     return (
-      <SafeAreaView edges={['left', 'right']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
+      <SafeAreaView
+        edges={['left', 'right']}
+        style={[styles.safeArea, { backgroundColor: theme.background }]}
+      >
         <TaskLoadErrorState
           theme={theme}
           onRetry={() =>
@@ -104,7 +108,10 @@ export default function TasksScreen() {
   };
 
   return (
-    <SafeAreaView edges={['left', 'right']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
+    <SafeAreaView
+      edges={['left', 'right']}
+      style={[styles.safeArea, { backgroundColor: theme.background }]}
+    >
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
@@ -124,83 +131,92 @@ export default function TasksScreen() {
           <TaskListLoadingState theme={theme} />
         ) : (
           <>
-        <View
-          style={[
-            styles.searchBox,
-            {
-              backgroundColor: theme.inputBg,
-              borderColor: theme.inputBorder,
-            },
-          ]}
-        >
-          <Feather name="search" size={20} color={theme.iconMuted} />
-          <TextInput
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search tasks..."
-            placeholderTextColor={theme.textSecondary}
-            style={[styles.searchInput, { color: theme.textPrimary }]}
-          />
-          {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch('')}>
-              <Ionicons name="close-circle-outline" size={22} color={theme.iconMuted} />
-            </TouchableOpacity>
-          )}
-        </View>
+            <View
+              style={[
+                styles.searchBox,
+                {
+                  backgroundColor: theme.inputBg,
+                  borderColor: theme.inputBorder,
+                },
+              ]}
+            >
+              <Feather name="search" size={20} color={theme.iconMuted} />
+              <TextInput
+                value={search}
+                onChangeText={setSearch}
+                placeholder="Search tasks..."
+                placeholderTextColor={theme.textSecondary}
+                style={[styles.searchInput, { color: theme.textPrimary }]}
+              />
+              {search.length > 0 && (
+                <TouchableOpacity onPress={() => setSearch('')}>
+                  <Ionicons name="close-circle-outline" size={22} color={theme.iconMuted} />
+                </TouchableOpacity>
+              )}
+            </View>
 
-        <View style={styles.filterRow}>
-          <FilterChip label="All" active={filter === 'all'} onPress={() => setFilter('all')} theme={theme} />
-          <FilterChip
-            label="Pending"
-            active={filter === 'pending'}
-            onPress={() => setFilter('pending')}
-            theme={theme}
-          />
-          <FilterChip
-            label="Completed"
-            active={filter === 'completed'}
-            onPress={() => setFilter('completed')}
-            theme={theme}
-          />
-        </View>
+            <View style={styles.filterRow}>
+              <FilterChip
+                label="All"
+                active={filter === 'all'}
+                onPress={() => setFilter('all')}
+                theme={theme}
+              />
+              <FilterChip
+                label="Pending"
+                active={filter === 'pending'}
+                onPress={() => setFilter('pending')}
+                theme={theme}
+              />
+              <FilterChip
+                label="Completed"
+                active={filter === 'completed'}
+                onPress={() => setFilter('completed')}
+                theme={theme}
+              />
+            </View>
 
-        <View style={styles.listHeader}>
-          <Text style={[styles.listTitle, { color: theme.textPrimary }]}>
-            {filteredTasks.length} task{filteredTasks.length === 1 ? '' : 's'}
-          </Text>
-          <Text style={[styles.listSubtitle, { color: theme.textSecondary }]}>Manage your workload</Text>
-        </View>
+            <View style={styles.listHeader}>
+              <Text style={[styles.listTitle, { color: theme.textPrimary }]}>
+                {filteredTasks.length} task{filteredTasks.length === 1 ? '' : 's'}
+              </Text>
+              <Text style={[styles.listSubtitle, { color: theme.textSecondary }]}>
+                Manage your workload
+              </Text>
+            </View>
 
-        {(isRefreshing || isFetchingList) && tasks.length > 0 && <TaskSyncStatus theme={theme} />}
+            {(isRefreshing || isFetchingList) && tasks.length > 0 && (
+              <TaskSyncStatus theme={theme} />
+            )}
 
-        {filteredTasks.length === 0 && search.trim().length > 0 ? (
-          <TaskSearchEmptyState
-            query={search.trim()}
-            theme={theme}
-            onClearSearch={() => setSearch('')}
-            onBrowseAll={() => {
-              setSearch('');
-              setFilter('all');
-            }}
-          />
-        ) : (
-          filteredTasks.map((task) => (
-            <TaskCard
-              actionType={activeTaskMutationId === task.id ? activeTaskMutationType : null}
-              key={task.id}
-              task={task}
-              theme={theme}
-              onDelete={() => handleDeleteTask(task.id)}
-              onComplete={() => handleCompleteTask(task.id)}
-              onPress={() =>
-                router.push({
-                  pathname: '/task/[id]',
-                  params: { id: task.id },
-                })
-              }
-            />
-          ))
-        )}
+            {filteredTasks.length === 0 && search.trim().length > 0 ? (
+              <TaskSearchEmptyState
+                query={search.trim()}
+                theme={theme}
+                onClearSearch={() => setSearch('')}
+                onBrowseAll={() => {
+                  setSearch('');
+                  setFilter('all');
+                }}
+              />
+            ) : (
+              filteredTasks.map((task) => (
+                <TaskCard
+                  actionType={activeTaskMutationId === task.id ? activeTaskMutationType : null}
+                  key={task.id}
+                  task={task}
+                  theme={theme}
+                  onDelete={() => handleDeleteTask(task.id)}
+                  onComplete={() => handleCompleteTask(task.id)}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/task/[id]',
+                      params: { id: task.id },
+                    })
+                  }
+                />
+              ))
+            )}
           </>
         )}
       </ScrollView>
@@ -229,7 +245,9 @@ const FilterChip = ({
       },
     ]}
   >
-    <Text style={[styles.filterChipText, { color: active ? '#FFFFFF' : theme.textSecondary }]}>{label}</Text>
+    <Text style={[styles.filterChipText, { color: active ? '#FFFFFF' : theme.textSecondary }]}>
+      {label}
+    </Text>
   </TouchableOpacity>
 );
 
@@ -295,7 +313,11 @@ const TaskCard = ({
             onPress={onDelete}
             style={[styles.swipeAction, styles.deleteAction, styles.rightSwipeAction]}
           >
-            {isDeleting ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="trash-outline" size={24} color="#FFFFFF" />}
+            {isDeleting ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Ionicons name="trash-outline" size={24} color="#FFFFFF" />
+            )}
             <Text style={styles.swipeActionText}>{isDeleting ? 'DELETING' : 'DELETE'}</Text>
           </TouchableOpacity>
         )}
@@ -321,7 +343,9 @@ const TaskCard = ({
           <View style={styles.taskTopRow}>
             <View style={styles.taskMetaRow}>
               <View style={[styles.priorityBadge, { backgroundColor: priorityStyles.bg }]}>
-                <Text style={[styles.priorityText, { color: priorityStyles.text }]}>{priorityLabel}</Text>
+                <Text style={[styles.priorityText, { color: priorityStyles.text }]}>
+                  {priorityLabel}
+                </Text>
               </View>
               <Text style={[styles.taskTime, { color: theme.textSecondary }]}>{dueLabel}</Text>
             </View>
@@ -354,7 +378,9 @@ const TaskCard = ({
             {task.title}
           </Text>
 
-          <Text style={[styles.taskSubtitle, { color: theme.textSecondary }]}>{task.description}</Text>
+          <Text style={[styles.taskSubtitle, { color: theme.textSecondary }]}>
+            {task.description}
+          </Text>
 
           <View style={styles.statusRow}>
             <Ionicons
@@ -362,10 +388,14 @@ const TaskCard = ({
               size={14}
               color={isCompleted ? theme.completed : theme.pending}
             />
-            <Text style={[styles.statusText, { color: isCompleted ? theme.completed : theme.pending }]}>
+            <Text
+              style={[styles.statusText, { color: isCompleted ? theme.completed : theme.pending }]}
+            >
               {statusLabel}
             </Text>
-            <Text style={[styles.categoryText, { color: theme.textSecondary }]}>{task.category}</Text>
+            <Text style={[styles.categoryText, { color: theme.textSecondary }]}>
+              {task.category}
+            </Text>
           </View>
         </TouchableOpacity>
       </Swipeable>

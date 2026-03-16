@@ -135,16 +135,13 @@ import { useThemeMode } from '../hooks/use-theme-mode';
 import { useToast } from '../hooks/use-toast';
 import { useTaskStore } from '../store/task-store';
 
-export const DashboardScreen = ({
-  mode,
-}: {
-  mode: ThemeMode;
-}) => {
+export const DashboardScreen = ({ mode }: { mode: ThemeMode }) => {
   const theme = useMemo(() => buildTheme(mode), [mode]);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { showError, showInfo, showSuccess } = useToast();
-  const { goOfflineMode, initialLoadFailed, isCheckingConnection, isRefreshing, retryConnection } = useTaskConnection();
+  const { goOfflineMode, initialLoadFailed, isCheckingConnection, isRefreshing, retryConnection } =
+    useTaskConnection();
   const activeTaskMutationId = useTaskStore((state) => state.activeTaskMutationId);
   const activeTaskMutationType = useTaskStore((state) => state.activeTaskMutationType);
   const completeTask = useTaskStore((state) => state.completeTask);
@@ -170,7 +167,10 @@ export const DashboardScreen = ({
 
   if (initialLoadFailed) {
     return (
-      <SafeAreaView edges={['left', 'right']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
+      <SafeAreaView
+        edges={['left', 'right']}
+        style={[styles.safeArea, { backgroundColor: theme.background }]}
+      >
         <TaskLoadErrorState
           theme={theme}
           onRetry={() =>
@@ -225,10 +225,7 @@ export const DashboardScreen = ({
 
       <View style={styles.screenWrapper}>
         <ScrollView
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingBottom: 32 },
-          ]}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 32 }]}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing || isFetchingList}
@@ -245,97 +242,119 @@ export const DashboardScreen = ({
             <TaskListLoadingState theme={theme} />
           ) : (
             <>
-          <Text style={[styles.heading, { color: theme.textPrimary }]}>Today&apos;s Tasks</Text>
-          <Text style={[styles.subheading, { color: theme.textSecondary }]}>
-            {todayTasks.length > 0
-              ? `${todayTasks.length} task${todayTasks.length === 1 ? '' : 's'} scheduled for today`
-              : 'No tasks scheduled for today yet'}
-          </Text>
+              <Text style={[styles.heading, { color: theme.textPrimary }]}>Today&apos;s Tasks</Text>
+              <Text style={[styles.subheading, { color: theme.textSecondary }]}>
+                {todayTasks.length > 0
+                  ? `${todayTasks.length} task${todayTasks.length === 1 ? '' : 's'} scheduled for today`
+                  : 'No tasks scheduled for today yet'}
+              </Text>
 
-          <View style={styles.statsRow}>
-            <StatCard label="Completed" value={completedCount} valueColor="#10B981" theme={theme} />
-            <StatCard label="Pending" value={pendingCount} valueColor="#F59E0B" theme={theme} />
-          </View>
+              <View style={styles.statsRow}>
+                <StatCard
+                  label="Completed"
+                  value={completedCount}
+                  valueColor="#10B981"
+                  theme={theme}
+                />
+                <StatCard label="Pending" value={pendingCount} valueColor="#F59E0B" theme={theme} />
+              </View>
 
-          <View style={styles.progressHeader}>
-            <Text style={[styles.progressTitle, { color: theme.blue }]}>Task Progress</Text>
-            <Text style={[styles.progressText, { color: theme.textSecondary }]}>
-              {completedCount} of {todayTasks.length} completed ({Math.round(progress * 100)}%)
-            </Text>
-          </View>
+              <View style={styles.progressHeader}>
+                <Text style={[styles.progressTitle, { color: theme.blue }]}>Task Progress</Text>
+                <Text style={[styles.progressText, { color: theme.textSecondary }]}>
+                  {completedCount} of {todayTasks.length} completed ({Math.round(progress * 100)}%)
+                </Text>
+              </View>
 
-          <View style={[styles.progressTrack, { backgroundColor: theme.progressTrack }]}>
-            <View style={[styles.progressFill, { backgroundColor: theme.blue, width: `${progress * 100}%` }]} />
-          </View>
+              <View style={[styles.progressTrack, { backgroundColor: theme.progressTrack }]}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    { backgroundColor: theme.blue, width: `${progress * 100}%` },
+                  ]}
+                />
+              </View>
 
-          <View
-            style={[
-              styles.searchBox,
-              {
-                backgroundColor: theme.inputBg,
-                borderColor: theme.inputBorder,
-              },
-            ]}
-          >
-            <Feather name="search" size={20} color={theme.iconMuted} />
-            <TextInput
-              value={search}
-              onChangeText={setSearch}
-              placeholder="Search today's tasks..."
-              placeholderTextColor={theme.textSecondary}
-              style={[styles.searchInput, { color: theme.textPrimary }]}
-            />
-            {search.length > 0 && (
-              <TouchableOpacity onPress={() => setSearch('')}>
-                <Ionicons name="close-circle-outline" size={24} color={theme.iconMuted} />
-              </TouchableOpacity>
-            )}
-          </View>
+              <View
+                style={[
+                  styles.searchBox,
+                  {
+                    backgroundColor: theme.inputBg,
+                    borderColor: theme.inputBorder,
+                  },
+                ]}
+              >
+                <Feather name="search" size={20} color={theme.iconMuted} />
+                <TextInput
+                  value={search}
+                  onChangeText={setSearch}
+                  placeholder="Search today's tasks..."
+                  placeholderTextColor={theme.textSecondary}
+                  style={[styles.searchInput, { color: theme.textPrimary }]}
+                />
+                {search.length > 0 && (
+                  <TouchableOpacity onPress={() => setSearch('')}>
+                    <Ionicons name="close-circle-outline" size={24} color={theme.iconMuted} />
+                  </TouchableOpacity>
+                )}
+              </View>
 
-          <View style={styles.filterRow}>
-            <FilterChip label="All Tasks" active={filter === 'all'} onPress={() => setFilter('all')} theme={theme} />
-            <FilterChip label="Pending" active={filter === 'pending'} onPress={() => setFilter('pending')} theme={theme} />
-            <FilterChip
-              label="Completed"
-              active={filter === 'completed'}
-              onPress={() => setFilter('completed')}
-              theme={theme}
-            />
-          </View>
+              <View style={styles.filterRow}>
+                <FilterChip
+                  label="All Tasks"
+                  active={filter === 'all'}
+                  onPress={() => setFilter('all')}
+                  theme={theme}
+                />
+                <FilterChip
+                  label="Pending"
+                  active={filter === 'pending'}
+                  onPress={() => setFilter('pending')}
+                  theme={theme}
+                />
+                <FilterChip
+                  label="Completed"
+                  active={filter === 'completed'}
+                  onPress={() => setFilter('completed')}
+                  theme={theme}
+                />
+              </View>
 
-          {(isRefreshing || isFetchingList) && tasks.length > 0 && <TaskSyncStatus theme={theme} />}
+              {(isRefreshing || isFetchingList) && tasks.length > 0 && (
+                <TaskSyncStatus theme={theme} />
+              )}
 
-        {filteredTasks.length === 0 && search.trim().length > 0 ? (
-            <TaskSearchEmptyState
-              query={search.trim()}
-              theme={theme}
-              onClearSearch={() => setSearch('')}
-              onBrowseAll={() => {
-                setSearch('');
-                setFilter('all');
-                router.replace('/tasks');
-              }}
-            />
-          ) : filteredTasks.length === 0 ? (
-            <TodayTasksEmptyState theme={theme} />
-          ) : (
-            filteredTasks.map((task) => (
-              <TaskCard
-                actionType={activeTaskMutationId === task.id ? activeTaskMutationType : null}
-                key={task.id}
-                task={task}
-                theme={theme}
-                onDelete={() => handleDeleteTask(task.id)}
-                onComplete={() => handleCompleteTask(task.id)}
-                onPress={() =>
-                  router.push({
-                    pathname: '/task/[id]',
-                    params: { id: task.id },
-                  })
-                }
-              />
-            ))
-          )}
+              {filteredTasks.length === 0 && search.trim().length > 0 ? (
+                <TaskSearchEmptyState
+                  query={search.trim()}
+                  theme={theme}
+                  onClearSearch={() => setSearch('')}
+                  onBrowseAll={() => {
+                    setSearch('');
+                    setFilter('all');
+                    router.replace('/tasks');
+                  }}
+                />
+              ) : filteredTasks.length === 0 ? (
+                <TodayTasksEmptyState theme={theme} />
+              ) : (
+                filteredTasks.map((task) => (
+                  <TaskCard
+                    actionType={activeTaskMutationId === task.id ? activeTaskMutationType : null}
+                    key={task.id}
+                    task={task}
+                    theme={theme}
+                    onDelete={() => handleDeleteTask(task.id)}
+                    onComplete={() => handleCompleteTask(task.id)}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/task/[id]',
+                        params: { id: task.id },
+                      })
+                    }
+                  />
+                ))
+              )}
             </>
           )}
         </ScrollView>
@@ -353,7 +372,6 @@ export const DashboardScreen = ({
         >
           <Ionicons name="add" size={34} color="#FFFFFF" />
         </TouchableOpacity>
-
       </View>
     </SafeAreaView>
   );
@@ -364,8 +382,6 @@ export default function HomeScreen() {
 
   return <DashboardScreen mode={mode} />;
 }
-
-
 
 const StatCard = ({
   label,
@@ -405,7 +421,9 @@ const FilterChip = ({
       },
     ]}
   >
-    <Text style={[styles.filterChipText, { color: active ? '#FFFFFF' : theme.textSecondary }]}>{label}</Text>
+    <Text style={[styles.filterChipText, { color: active ? '#FFFFFF' : theme.textSecondary }]}>
+      {label}
+    </Text>
   </TouchableOpacity>
 );
 
@@ -437,8 +455,8 @@ const TaskCard = ({
     task.priority === 'High'
       ? { bg: theme.highBg, text: theme.highText }
       : task.priority === 'Medium'
-      ? { bg: theme.mediumBg, text: theme.mediumText }
-      : { bg: theme.normalBg, text: theme.normalText };
+        ? { bg: theme.mediumBg, text: theme.mediumText }
+        : { bg: theme.normalBg, text: theme.normalText };
 
   return (
     <View style={styles.swipeContainer}>
@@ -471,7 +489,11 @@ const TaskCard = ({
             onPress={onDelete}
             style={[styles.swipeAction, styles.deleteAction, styles.rightSwipeAction]}
           >
-            {isDeleting ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="trash-outline" size={24} color="#FFFFFF" />}
+            {isDeleting ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Ionicons name="trash-outline" size={24} color="#FFFFFF" />
+            )}
             <Text style={styles.swipeActionText}>{isDeleting ? 'DELETING' : 'DELETE'}</Text>
           </TouchableOpacity>
         )}
@@ -497,7 +519,9 @@ const TaskCard = ({
           <View style={styles.taskTopRow}>
             <View style={styles.taskMetaRow}>
               <View style={[styles.priorityBadge, { backgroundColor: priorityStyles.bg }]}>
-                <Text style={[styles.priorityText, { color: priorityStyles.text }]}>{priorityLabel}</Text>
+                <Text style={[styles.priorityText, { color: priorityStyles.text }]}>
+                  {priorityLabel}
+                </Text>
               </View>
               <Text style={[styles.taskTime, { color: theme.textSecondary }]}>{dueLabel}</Text>
             </View>
@@ -530,7 +554,9 @@ const TaskCard = ({
             {task.title}
           </Text>
 
-          <Text style={[styles.taskSubtitle, { color: theme.textSecondary }]}>{task.description}</Text>
+          <Text style={[styles.taskSubtitle, { color: theme.textSecondary }]}>
+            {task.description}
+          </Text>
 
           <View style={styles.statusRow}>
             <Ionicons
@@ -538,18 +564,20 @@ const TaskCard = ({
               size={14}
               color={isCompleted ? theme.completed : theme.pending}
             />
-            <Text style={[styles.statusText, { color: isCompleted ? theme.completed : theme.pending }]}>
+            <Text
+              style={[styles.statusText, { color: isCompleted ? theme.completed : theme.pending }]}
+            >
               {statusLabel}
             </Text>
-            <Text style={[styles.categoryText, { color: theme.textSecondary }]}>{task.category}</Text>
+            <Text style={[styles.categoryText, { color: theme.textSecondary }]}>
+              {task.category}
+            </Text>
           </View>
         </TouchableOpacity>
       </Swipeable>
     </View>
   );
 };
-
-
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -793,11 +821,7 @@ const styles = StyleSheet.create({
   },
 });
 
-const TodayTasksEmptyState = ({
-  theme,
-}: {
-  theme: ReturnType<typeof buildTheme>;
-}) => (
+const TodayTasksEmptyState = ({ theme }: { theme: ReturnType<typeof buildTheme> }) => (
   <View style={[styles.emptyCard, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
     <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Nothing due today</Text>
     <Text style={[styles.emptyText, { color: theme.textSecondary }]}>

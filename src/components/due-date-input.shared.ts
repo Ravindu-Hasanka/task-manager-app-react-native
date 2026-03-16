@@ -20,7 +20,11 @@ function getSeedDate(baseDate: Date | null) {
 
 export function mergeDatePart(baseDate: Date | null, nextDatePart: Date) {
   const mergedDate = getSeedDate(baseDate);
-  mergedDate.setFullYear(nextDatePart.getFullYear(), nextDatePart.getMonth(), nextDatePart.getDate());
+  mergedDate.setFullYear(
+    nextDatePart.getFullYear(),
+    nextDatePart.getMonth(),
+    nextDatePart.getDate()
+  );
   return mergedDate.toISOString();
 }
 

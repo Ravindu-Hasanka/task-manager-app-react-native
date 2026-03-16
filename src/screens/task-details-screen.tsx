@@ -44,7 +44,8 @@ export default function TaskDetailsScreen() {
   const [statusError, setStatusError] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const isDeletingCurrentTask = activeTaskMutationId === id && activeTaskMutationType === 'delete';
-  const isUpdatingCurrentTask = activeTaskMutationId === id && activeTaskMutationType === 'complete';
+  const isUpdatingCurrentTask =
+    activeTaskMutationId === id && activeTaskMutationType === 'complete';
 
   useEffect(() => {
     if (id) {
@@ -162,7 +163,12 @@ export default function TaskDetailsScreen() {
         <Text style={[styles.taskTitle, { color: theme.textPrimary }]}>{currentTask.title}</Text>
 
         <View style={styles.badgeRow}>
-          <View style={[styles.badge, { backgroundColor: priorityStyles.bg, borderColor: priorityStyles.text }]}>
+          <View
+            style={[
+              styles.badge,
+              { backgroundColor: priorityStyles.bg, borderColor: priorityStyles.text },
+            ]}
+          >
             <Ionicons name="alert-circle-outline" size={16} color={priorityStyles.text} />
             <Text style={[styles.badgeText, { color: priorityStyles.text }]}>{priorityLabel}</Text>
           </View>
@@ -182,9 +188,16 @@ export default function TaskDetailsScreen() {
         </View>
 
         <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>DESCRIPTION</Text>
-        <Text style={[styles.description, { color: theme.textPrimary }]}>{currentTask.description}</Text>
+        <Text style={[styles.description, { color: theme.textPrimary }]}>
+          {currentTask.description}
+        </Text>
 
-        <View style={[styles.statusCard, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+        <View
+          style={[
+            styles.statusCard,
+            { backgroundColor: theme.card, borderColor: theme.cardBorder },
+          ]}
+        >
           <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>TASK STATUS</Text>
           <View
             style={[
@@ -213,8 +226,15 @@ export default function TaskDetailsScreen() {
                   color={!completed ? '#FFFFFF' : theme.textSecondary}
                 />
               )}
-              <Text style={[styles.statusOptionText, { color: !completed ? '#FFFFFF' : theme.textSecondary }]}>
-                {isUpdatingCurrentTask && pendingCompletedValue === false ? 'Updating...' : 'Pending'}
+              <Text
+                style={[
+                  styles.statusOptionText,
+                  { color: !completed ? '#FFFFFF' : theme.textSecondary },
+                ]}
+              >
+                {isUpdatingCurrentTask && pendingCompletedValue === false
+                  ? 'Updating...'
+                  : 'Pending'}
               </Text>
             </TouchableOpacity>
 
@@ -239,8 +259,15 @@ export default function TaskDetailsScreen() {
                   color={completed ? '#FFFFFF' : theme.textSecondary}
                 />
               )}
-              <Text style={[styles.statusOptionText, { color: completed ? '#FFFFFF' : theme.textSecondary }]}>
-                {isUpdatingCurrentTask && pendingCompletedValue === true ? 'Updating...' : 'Completed'}
+              <Text
+                style={[
+                  styles.statusOptionText,
+                  { color: completed ? '#FFFFFF' : theme.textSecondary },
+                ]}
+              >
+                {isUpdatingCurrentTask && pendingCompletedValue === true
+                  ? 'Updating...'
+                  : 'Completed'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -255,7 +282,15 @@ export default function TaskDetailsScreen() {
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { backgroundColor: mode === 'dark' ? '#111827' : '#EEF3FF', borderTopColor: theme.cardBorder }]}>
+      <View
+        style={[
+          styles.footer,
+          {
+            backgroundColor: mode === 'dark' ? '#111827' : '#EEF3FF',
+            borderTopColor: theme.cardBorder,
+          },
+        ]}
+      >
         <TouchableOpacity
           disabled={isDeletingCurrentTask || isUpdatingCurrentTask}
           onPress={() =>
@@ -308,7 +343,10 @@ export default function TaskDetailsScreen() {
           onPress={() => setShowDeleteConfirm(false)}
           style={[
             styles.modalOverlay,
-            { backgroundColor: mode === 'dark' ? 'rgba(2, 6, 23, 0.78)' : 'rgba(148, 163, 184, 0.28)' },
+            {
+              backgroundColor:
+                mode === 'dark' ? 'rgba(2, 6, 23, 0.78)' : 'rgba(148, 163, 184, 0.28)',
+            },
           ]}
         >
           <Pressable
@@ -333,8 +371,8 @@ export default function TaskDetailsScreen() {
             <Text style={[styles.confirmTitle, { color: theme.textPrimary }]}>Delete task?</Text>
             <Text style={[styles.confirmText, { color: theme.textSecondary }]}>
               Are you sure you want to delete{' '}
-              <Text style={{ color: theme.textPrimary }}>&quot;{currentTask.title}&quot;</Text>? This
-              action cannot be undone and will remove all details for this task.
+              <Text style={{ color: theme.textPrimary }}>&quot;{currentTask.title}&quot;</Text>?
+              This action cannot be undone and will remove all details for this task.
             </Text>
 
             <TouchableOpacity

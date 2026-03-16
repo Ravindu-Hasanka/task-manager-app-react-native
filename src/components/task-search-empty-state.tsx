@@ -47,11 +47,14 @@ export function TaskSearchEmptyState({
       <Text style={[styles.title, { color: theme.textPrimary }]}>No matching tasks found</Text>
       <Text style={[styles.description, { color: theme.textSecondary }]}>
         We couldn&apos;t find any results for{' '}
-        <Text style={[styles.queryText, { color: theme.textPrimary }]}>&quot;{query}&quot;</Text>. Try a
-        different search term or check your spelling.
+        <Text style={[styles.queryText, { color: theme.textPrimary }]}>&quot;{query}&quot;</Text>.
+        Try a different search term or check your spelling.
       </Text>
 
-      <TouchableOpacity onPress={onClearSearch} style={[styles.primaryButton, { backgroundColor: theme.blue }]}>
+      <TouchableOpacity
+        onPress={onClearSearch}
+        style={[styles.primaryButton, { backgroundColor: theme.blue }]}
+      >
         <Ionicons name="close-outline" size={20} color="#FFFFFF" />
         <Text style={styles.primaryButtonText}>Clear Search</Text>
       </TouchableOpacity>
@@ -66,7 +69,9 @@ export function TaskSearchEmptyState({
           },
         ]}
       >
-        <Text style={[styles.secondaryButtonText, { color: theme.textPrimary }]}>Browse All Tasks</Text>
+        <Text style={[styles.secondaryButtonText, { color: theme.textPrimary }]}>
+          Browse All Tasks
+        </Text>
       </TouchableOpacity>
     </View>
   );

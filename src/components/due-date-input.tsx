@@ -26,7 +26,14 @@ type DueDateInputProps = {
 
 type PickerMode = 'date' | 'time';
 
-export function DueDateInput({ value, onChange, onBlur, hasError = false, theme, mode }: DueDateInputProps) {
+export function DueDateInput({
+  value,
+  onChange,
+  onBlur,
+  hasError = false,
+  theme,
+  mode,
+}: DueDateInputProps) {
   const selectedDate = useMemo(() => parseDueDate(value), [value]);
   const [iosPickerMode, setIosPickerMode] = useState<PickerMode>('date');
   const [showIosPicker, setShowIosPicker] = useState(false);
@@ -42,15 +49,16 @@ export function DueDateInput({ value, onChange, onBlur, hasError = false, theme,
     onChange(nextDueDate);
   };
 
-  const handleAndroidChange = (pickerMode: PickerMode) => (event: DateTimePickerEvent, nextValue?: Date) => {
-    if (event.type !== 'set' || !nextValue) {
-      onBlur?.();
-      return;
-    }
+  const handleAndroidChange =
+    (pickerMode: PickerMode) => (event: DateTimePickerEvent, nextValue?: Date) => {
+      if (event.type !== 'set' || !nextValue) {
+        onBlur?.();
+        return;
+      }
 
-    applySelectedPart(pickerMode, nextValue);
-    onBlur?.();
-  };
+      applySelectedPart(pickerMode, nextValue);
+      onBlur?.();
+    };
 
   const openPicker = (pickerMode: PickerMode) => {
     if (Platform.OS === 'android') {
@@ -101,11 +109,18 @@ export function DueDateInput({ value, onChange, onBlur, hasError = false, theme,
       </View>
 
       {Platform.OS === 'ios' && (
-        <Modal animationType="slide" transparent visible={showIosPicker} onRequestClose={closeIosPicker}>
+        <Modal
+          animationType="slide"
+          transparent
+          visible={showIosPicker}
+          onRequestClose={closeIosPicker}
+        >
           <Pressable
             style={[
               styles.modalOverlay,
-              { backgroundColor: mode === 'dark' ? 'rgba(2, 6, 23, 0.7)' : 'rgba(15, 23, 42, 0.25)' },
+              {
+                backgroundColor: mode === 'dark' ? 'rgba(2, 6, 23, 0.7)' : 'rgba(15, 23, 42, 0.25)',
+              },
             ]}
             onPress={closeIosPicker}
           >

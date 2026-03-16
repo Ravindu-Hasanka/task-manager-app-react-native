@@ -54,7 +54,8 @@ function TabsShell() {
               backgroundColor: theme.background,
               paddingBottom: 0,
             },
-          }}>
+          }}
+        >
           <Tabs.Screen name="index" />
           <Tabs.Screen name="tasks" />
         </Tabs>

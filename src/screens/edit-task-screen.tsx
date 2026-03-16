@@ -24,7 +24,12 @@ import { useThemeMode } from '../hooks/use-theme-mode';
 import { useToast } from '../hooks/use-toast';
 import { useTaskStore } from '../store/task-store';
 import { TASK_PRIORITIES } from '../types/task';
-import { mapTaskFormValuesToInput, taskFormDefaults, taskFormSchema, TaskFormValues } from '../utils/task-form';
+import {
+  mapTaskFormValuesToInput,
+  taskFormDefaults,
+  taskFormSchema,
+  TaskFormValues,
+} from '../utils/task-form';
 
 export default function EditTaskScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -397,13 +402,18 @@ export default function EditTaskScreen() {
           ) : (
             <Ionicons name="checkmark-circle-outline" size={22} color="#FFFFFF" />
           )}
-          <Text style={styles.updateButtonText}>{isSaving ? 'Updating Task...' : 'Update Task'}</Text>
+          <Text style={styles.updateButtonText}>
+            {isSaving ? 'Updating Task...' : 'Update Task'}
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           disabled={isSaving || isDeletingCurrentTask}
           onPress={() => setShowDeleteConfirm(true)}
-          style={[styles.deleteTextButton, { opacity: isSaving || isDeletingCurrentTask ? 0.72 : 1 }]}
+          style={[
+            styles.deleteTextButton,
+            { opacity: isSaving || isDeletingCurrentTask ? 0.72 : 1 },
+          ]}
         >
           <Ionicons name="trash-outline" size={18} color="#FF335C" />
           <Text style={styles.deleteText}>Delete Task</Text>
@@ -448,8 +458,8 @@ export default function EditTaskScreen() {
             <Text style={[styles.confirmTitle, { color: theme.textPrimary }]}>Delete task?</Text>
             <Text style={[styles.confirmText, { color: theme.textSecondary }]}>
               Are you sure you want to delete{' '}
-              <Text style={{ color: theme.textPrimary }}>&quot;{task.title}&quot;</Text>? This action
-              cannot be undone and will remove all details for this task.
+              <Text style={{ color: theme.textPrimary }}>&quot;{task.title}&quot;</Text>? This
+              action cannot be undone and will remove all details for this task.
             </Text>
 
             <TouchableOpacity

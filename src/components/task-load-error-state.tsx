@@ -46,12 +46,17 @@ export function TaskLoadErrorState({
         Please check your internet connection and try again.
       </Text>
 
-      <TouchableOpacity onPress={onRetry} style={[styles.primaryButton, { backgroundColor: theme.blue }]}>
+      <TouchableOpacity
+        onPress={onRetry}
+        style={[styles.primaryButton, { backgroundColor: theme.blue }]}
+      >
         <Text style={styles.primaryButtonText}>Retry Connection</Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={onOfflineMode} style={styles.secondaryButton}>
-        <Text style={[styles.secondaryButtonText, { color: theme.textSecondary }]}>Go to Offline Mode</Text>
+        <Text style={[styles.secondaryButtonText, { color: theme.textSecondary }]}>
+          Go to Offline Mode
+        </Text>
       </TouchableOpacity>
     </View>
   );
