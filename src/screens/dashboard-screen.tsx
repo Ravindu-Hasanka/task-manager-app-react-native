@@ -100,6 +100,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import {
+  ActivityIndicator,
   View,
   Text,
   StyleSheet,
@@ -113,6 +114,7 @@ import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { Swipeable } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TaskLoadErrorState } from '../components/task-load-error-state';
+import { TaskListLoadingState } from '../components/task-list-loading-state';
 import { TaskSearchEmptyState } from '../components/task-search-empty-state';
 import { TaskSyncStatus } from '../components/task-sync-status';
 import {
@@ -139,10 +141,13 @@ export const DashboardScreen = ({
   const theme = useMemo(() => buildTheme(mode), [mode]);
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { goOfflineMode, initialLoadFailed, isRefreshing, refreshTasks, retryConnection } = useTaskConnection();
+  const { goOfflineMode, initialLoadFailed, isCheckingConnection, isRefreshing, retryConnection } = useTaskConnection();
+  const activeTaskMutationId = useTaskStore((state) => state.activeTaskMutationId);
+  const activeTaskMutationType = useTaskStore((state) => state.activeTaskMutationType);
   const completeTask = useTaskStore((state) => state.completeTask);
   const deleteTask = useTaskStore((state) => state.deleteTask);
   const fetchTasks = useTaskStore((state) => state.fetchTasks);
+  const isFetchingList = useTaskStore((state) => state.isFetchingList);
   const tasks = useTaskStore((state) => state.tasks);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
@@ -164,12 +169,19 @@ export const DashboardScreen = ({
       <SafeAreaView edges={['left', 'right']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
         <TaskLoadErrorState
           theme={theme}
-          onRetry={() => void retryConnection()}
+          onRetry={() =>
+            void (async () => {
+              await retryConnection();
+              await fetchTasks();
+            })()
+          }
           onOfflineMode={goOfflineMode}
         />
       </SafeAreaView>
     );
   }
+
+  const showInitialLoading = (isCheckingConnection || isFetchingList) && tasks.length === 0;
 
   const handleDeleteTask = (taskId: string) => {
     void deleteTask(taskId);
@@ -197,9 +209,8 @@ export const DashboardScreen = ({
           ]}
           refreshControl={
             <RefreshControl
-              refreshing={isRefreshing}
+              refreshing={isRefreshing || isFetchingList}
               onRefresh={() => {
-                void refreshTasks();
                 void fetchTasks();
               }}
               tintColor={theme.blue}
@@ -208,6 +219,10 @@ export const DashboardScreen = ({
           }
           showsVerticalScrollIndicator={false}
         >
+          {showInitialLoading ? (
+            <TaskListLoadingState theme={theme} />
+          ) : (
+            <>
           <Text style={[styles.heading, { color: theme.textPrimary }]}>
             You have {pendingCount} pending task{pendingCount === 1 ? '' : 's'}
           </Text>
@@ -263,7 +278,7 @@ export const DashboardScreen = ({
             />
           </View>
 
-          {isRefreshing && <TaskSyncStatus theme={theme} />}
+          {(isRefreshing || isFetchingList) && tasks.length > 0 && <TaskSyncStatus theme={theme} />}
 
           {filteredTasks.length === 0 && search.trim().length > 0 ? (
             <TaskSearchEmptyState
@@ -279,6 +294,7 @@ export const DashboardScreen = ({
           ) : (
             filteredTasks.map((task) => (
               <TaskCard
+                actionType={activeTaskMutationId === task.id ? activeTaskMutationType : null}
                 key={task.id}
                 task={task}
                 theme={theme}
@@ -292,6 +308,8 @@ export const DashboardScreen = ({
                 }
               />
             ))
+          )}
+            </>
           )}
         </ScrollView>
 
@@ -370,15 +388,20 @@ const TaskCard = ({
   onDelete,
   onComplete,
   onPress,
+  actionType,
 }: {
   task: Task;
   theme: ReturnType<typeof buildTheme>;
   onDelete: () => void;
   onComplete: () => void;
   onPress: () => void;
+  actionType: 'complete' | 'delete' | 'update' | null;
 }) => {
   const [openedSide, setOpenedSide] = useState<'left' | 'right' | null>(null);
   const isCompleted = isTaskCompleted(task);
+  const isCompleting = actionType === 'complete';
+  const isDeleting = actionType === 'delete';
+  const isMutating = Boolean(actionType);
   const statusLabel = getTaskStatusLabel(task);
   const dueLabel = getTaskDueLabel(task);
   const priorityLabel = getTaskPriorityLabel(task);
@@ -401,33 +424,41 @@ const TaskCard = ({
           !isCompleted ? (
             <TouchableOpacity
               activeOpacity={0.9}
+              disabled={isMutating}
               onPress={onComplete}
               style={[styles.swipeAction, styles.completeAction, styles.leftSwipeAction]}
             >
-              <Ionicons name="checkmark-done-outline" size={24} color="#FFFFFF" />
-              <Text style={styles.swipeActionText}>DONE</Text>
+              {isCompleting ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Ionicons name="checkmark-done-outline" size={24} color="#FFFFFF" />
+              )}
+              <Text style={styles.swipeActionText}>{isCompleting ? 'SAVING' : 'DONE'}</Text>
             </TouchableOpacity>
           ) : null
         }
         renderRightActions={() => (
           <TouchableOpacity
             activeOpacity={0.9}
+            disabled={isMutating}
             onPress={onDelete}
             style={[styles.swipeAction, styles.deleteAction, styles.rightSwipeAction]}
           >
-            <Ionicons name="trash-outline" size={24} color="#FFFFFF" />
-            <Text style={styles.swipeActionText}>DELETE</Text>
+            {isDeleting ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="trash-outline" size={24} color="#FFFFFF" />}
+            <Text style={styles.swipeActionText}>{isDeleting ? 'DELETING' : 'DELETE'}</Text>
           </TouchableOpacity>
         )}
       >
         <TouchableOpacity
           activeOpacity={0.92}
+          disabled={isMutating}
           onPress={onPress}
           style={[
             styles.taskCard,
             {
               backgroundColor: theme.card,
               borderColor: theme.cardBorder,
+              opacity: isMutating ? 0.72 : 1,
             },
             openedSide === 'left'
               ? styles.cardOpenToLeft
@@ -449,9 +480,13 @@ const TaskCard = ({
                 <MaterialCommunityIcons name="check-all" size={22} color={theme.completed} />
               </View>
             ) : (
-              <TouchableOpacity style={[styles.menuButton, { borderColor: theme.chipBorder }]}>
-                <Feather name="more-vertical" size={18} color={theme.textSecondary} />
-              </TouchableOpacity>
+              <View style={[styles.menuButton, { borderColor: theme.chipBorder }]}>
+                {isMutating ? (
+                  <ActivityIndicator color={theme.textSecondary} size="small" />
+                ) : (
+                  <Feather name="more-vertical" size={18} color={theme.textSecondary} />
+                )}
+              </View>
             )}
           </View>
 
@@ -708,4 +743,3 @@ const styles = StyleSheet.create({
   
   
 });
-

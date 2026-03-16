@@ -30,7 +30,7 @@ export const TASKS: Task[] = [
     title: 'Surgery Prep - Room 02',
     description: 'Confirm consent forms, anesthesia notes, and equipment readiness before noon.',
     id: '3',
-    priority: 'Normal',
+    priority: 'Low',
     completed: false,
     category: 'Operations',
     dueDate: '2025-12-21T11:00:00.000Z',

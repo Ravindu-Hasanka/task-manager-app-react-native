@@ -11,6 +11,8 @@ import { TASKS as seedTasks } from '../store/seed-tasks';
 import { CreateTaskInput, Task } from '../types/task';
 
 type TaskStore = {
+  activeTaskMutationId: string | null;
+  activeTaskMutationType: 'complete' | 'delete' | 'update' | null;
   createTaskError: string | null;
   error: string | null;
   isCreatingTask: boolean;
@@ -41,6 +43,8 @@ function replaceTask(tasks: Task[], task: Task) {
 }
 
 export const useTaskStore = create<TaskStore>((set, get) => ({
+  activeTaskMutationId: null,
+  activeTaskMutationType: null,
   createTaskError: null,
   error: null,
   isCreatingTask: false,
@@ -86,6 +90,8 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     }
 
     set({
+      activeTaskMutationId: id,
+      activeTaskMutationType: 'complete',
       isUpdatingTask: true,
       updateTaskError: null,
     });
@@ -98,6 +104,8 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       });
 
       set((state) => ({
+        activeTaskMutationId: null,
+        activeTaskMutationType: null,
         isUpdatingTask: false,
         tasks: replaceTask(state.tasks, updatedTask),
       }));
@@ -107,6 +115,8 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       const message = error instanceof Error ? error.message : 'Unable to update task status';
 
       set({
+        activeTaskMutationId: null,
+        activeTaskMutationType: null,
         isUpdatingTask: false,
         updateTaskError: message,
       });
@@ -116,6 +126,8 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   },
   deleteTask: async (id) => {
     set({
+      activeTaskMutationId: id,
+      activeTaskMutationType: 'delete',
       deleteTaskError: null,
       isDeletingTask: true,
     });
@@ -124,6 +136,8 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       await deleteTaskRequest(id);
 
       set((state) => ({
+        activeTaskMutationId: null,
+        activeTaskMutationType: null,
         isDeletingTask: false,
         tasks: state.tasks.filter((task) => task.id !== id),
         selectedTaskId: state.selectedTaskId === id ? null : state.selectedTaskId,
@@ -132,6 +146,8 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       const message = error instanceof Error ? error.message : 'Unable to delete task';
 
       set({
+        activeTaskMutationId: null,
+        activeTaskMutationType: null,
         deleteTaskError: message,
         isDeletingTask: false,
       });
@@ -185,6 +201,8 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   },
   updateTask: async (task) => {
     set({
+      activeTaskMutationId: task.id,
+      activeTaskMutationType: 'update',
       isUpdatingTask: true,
       updateTaskError: null,
     });
@@ -193,6 +211,8 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       const updatedTask = await updateTaskRequest(task);
 
       set((state) => ({
+        activeTaskMutationId: null,
+        activeTaskMutationType: null,
         isUpdatingTask: false,
         tasks: replaceTask(state.tasks, updatedTask),
       }));
@@ -202,6 +222,8 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       const message = error instanceof Error ? error.message : 'Unable to update task';
 
       set({
+        activeTaskMutationId: null,
+        activeTaskMutationType: null,
         isUpdatingTask: false,
         updateTaskError: message,
       });
@@ -210,4 +232,3 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     }
   },
 }));
-

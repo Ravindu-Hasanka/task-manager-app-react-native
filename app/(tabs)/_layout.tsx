@@ -27,6 +27,10 @@ function TabsShell() {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
+      {showOfflineBanner && !initialLoadFailed && (
+        <OfflineBanner theme={theme} onRetry={() => void retryConnection()} />
+      )}
+
       <View style={styles.headerContainer}>
         {isTasksScreen ? (
           <Header
@@ -39,10 +43,6 @@ function TabsShell() {
           <Header theme={theme} onThemeToggle={toggleTheme} />
         )}
       </View>
-
-      {showOfflineBanner && !initialLoadFailed && (
-        <OfflineBanner theme={theme} onRetry={() => void retryConnection()} />
-      )}
 
       <View style={styles.tabsContainer}>
         <Tabs

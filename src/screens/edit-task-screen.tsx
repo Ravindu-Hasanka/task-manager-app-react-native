@@ -20,7 +20,7 @@ import { useTaskStore } from '../store/task-store';
 import { Task } from '../types/task';
 
 const PRIORITY_OPTIONS: { label: string; value: Task['priority'] }[] = [
-  { label: 'Low', value: 'Normal' },
+  { label: 'Low', value: 'Low' },
   { label: 'Medium', value: 'Medium' },
   { label: 'High', value: 'High' },
 ];
@@ -40,7 +40,7 @@ export default function EditTaskScreen() {
   const [title, setTitle] = useState(task?.title ?? '');
   const [description, setDescription] = useState(task?.description ?? '');
   const [category, setCategory] = useState(task?.category ?? '');
-  const [priority, setPriority] = useState<Task['priority']>(task?.priority ?? 'Normal');
+  const [priority, setPriority] = useState<Task['priority']>(task?.priority ?? 'Low');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [formError, setFormError] = useState('');
 

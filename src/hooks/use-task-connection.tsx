@@ -1,6 +1,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import NetInfo from '@react-native-community/netinfo';
 
 type TaskConnectionContextValue = {
+  isCheckingConnection: boolean;
+  isOnline: boolean;
   initialLoadFailed: boolean;
   isRefreshing: boolean;
   showOfflineBanner: boolean;
@@ -11,9 +14,15 @@ type TaskConnectionContextValue = {
 
 const TaskConnectionContext = createContext<TaskConnectionContextValue | null>(null);
 
-function hasInternetConnection() {
-  if (typeof globalThis.navigator?.onLine === 'boolean') {
-    return globalThis.navigator.onLine;
+function resolveOnlineState(
+  state: Awaited<ReturnType<typeof NetInfo.fetch>> | { isConnected: boolean | null; isInternetReachable: boolean | null }
+) {
+  if (typeof state.isInternetReachable === 'boolean') {
+    return state.isInternetReachable;
+  }
+
+  if (typeof state.isConnected === 'boolean') {
+    return state.isConnected;
   }
 
   return true;
@@ -24,6 +33,8 @@ function wait(ms: number) {
 }
 
 export function TaskConnectionProvider({ children }: { children: React.ReactNode }) {
+  const [isCheckingConnection, setIsCheckingConnection] = useState(true);
+  const [isOnline, setIsOnline] = useState(true);
   const [initialLoadFailed, setInitialLoadFailed] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showOfflineBanner, setShowOfflineBanner] = useState(false);
@@ -31,12 +42,15 @@ export function TaskConnectionProvider({ children }: { children: React.ReactNode
 
   const runConnectionCheck = useCallback(
     async ({ initial = false }: { initial?: boolean } = {}) => {
+      setIsCheckingConnection(true);
       setIsRefreshing(true);
       await wait(700);
 
-      const online = hasInternetConnection();
+      const online = resolveOnlineState(await NetInfo.fetch());
+      setIsOnline(online);
 
       if (!online) {
+        setIsCheckingConnection(false);
         setIsRefreshing(false);
 
         if (initial && !hasLoadedOnce) {
@@ -51,6 +65,7 @@ export function TaskConnectionProvider({ children }: { children: React.ReactNode
       setInitialLoadFailed(false);
       setShowOfflineBanner(false);
       setHasLoadedOnce(true);
+      setIsCheckingConnection(false);
       setIsRefreshing(false);
       return true;
     },
@@ -62,35 +77,38 @@ export function TaskConnectionProvider({ children }: { children: React.ReactNode
   }, [runConnectionCheck]);
 
   useEffect(() => {
-    const eventTarget =
-      typeof window !== 'undefined' &&
-      typeof window.addEventListener === 'function' &&
-      typeof window.removeEventListener === 'function'
-        ? window
-        : null;
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      const online = resolveOnlineState(state);
 
-    if (!eventTarget) {
-      return;
-    }
+      setIsOnline(online);
+      setIsCheckingConnection(false);
 
-    const handleOffline = () => {
+      if (online) {
+        setInitialLoadFailed(false);
+        setShowOfflineBanner(false);
+        if (hasLoadedOnce) {
+          return;
+        }
+
+        setHasLoadedOnce(true);
+        return;
+      }
+
       if (hasLoadedOnce) {
         setShowOfflineBanner(true);
       } else {
         setInitialLoadFailed(true);
       }
-    };
+    });
 
-    eventTarget.addEventListener('offline', handleOffline);
-
-    return () => {
-      eventTarget.removeEventListener('offline', handleOffline);
-    };
+    return unsubscribe;
   }, [hasLoadedOnce]);
 
   return (
     <TaskConnectionContext.Provider
       value={{
+        isCheckingConnection,
+        isOnline,
         initialLoadFailed,
         isRefreshing,
         showOfflineBanner,
