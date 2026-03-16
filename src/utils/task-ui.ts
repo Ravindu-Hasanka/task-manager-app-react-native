@@ -42,6 +42,20 @@ export function getTaskCreatedLabel(task: Task) {
   }).format(createdDate);
 }
 
+export function isTaskDueToday(task: Task, referenceDate = new Date()) {
+  const dueDate = new Date(task.dueDate);
+
+  if (Number.isNaN(dueDate.getTime())) {
+    return false;
+  }
+
+  return (
+    dueDate.getFullYear() === referenceDate.getFullYear() &&
+    dueDate.getMonth() === referenceDate.getMonth() &&
+    dueDate.getDate() === referenceDate.getDate()
+  );
+}
+
 export function matchesTaskSearch(task: Task, search: string) {
   const searchValue = search.trim().toLowerCase();
 

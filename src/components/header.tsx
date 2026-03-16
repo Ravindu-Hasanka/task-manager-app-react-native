@@ -19,6 +19,19 @@ type HeaderProps = DashboardHeaderProps | TitleHeaderProps;
 
 export const Header = (props: HeaderProps) => {
   const { theme } = props;
+  const now = new Date();
+  const currentHour = now.getHours();
+  const greeting =
+    currentHour < 12
+      ? 'Good Morning, Dr. Nimal'
+      : currentHour < 18
+        ? 'Good Afternoon, Dr. Nimal'
+        : 'Good Evening, Dr. Nimal';
+  const formattedDate = new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+  }).format(now);
 
   if (props.variant === 'title') {
     return (
@@ -39,8 +52,8 @@ export const Header = (props: HeaderProps) => {
           <Ionicons name="person" size={22} color={theme.textPrimary} />
         </View>
         <View>
-          <Text style={[styles.greeting, { color: theme.textPrimary }]}>Good Morning, Dr. Nimal</Text>
-          <Text style={[styles.dateText, { color: theme.textSecondary }]}>Thursday, Oct 24</Text>
+          <Text style={[styles.greeting, { color: theme.textPrimary }]}>{greeting}</Text>
+          <Text style={[styles.dateText, { color: theme.textSecondary }]}>{formattedDate}</Text>
         </View>
       </View>
 

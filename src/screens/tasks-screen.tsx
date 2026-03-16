@@ -148,7 +148,7 @@ export default function TasksScreen() {
           <Text style={[styles.listTitle, { color: theme.textPrimary }]}>
             {filteredTasks.length} task{filteredTasks.length === 1 ? '' : 's'}
           </Text>
-          <Text style={[styles.listSubtitle, { color: theme.textSecondary }]}>Manage your daily workload</Text>
+          <Text style={[styles.listSubtitle, { color: theme.textSecondary }]}>Manage your workload</Text>
         </View>
 
         {(isRefreshing || isFetchingList) && tasks.length > 0 && <TaskSyncStatus theme={theme} />}

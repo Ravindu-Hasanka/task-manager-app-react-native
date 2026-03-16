@@ -122,6 +122,7 @@ import {
   getTaskPriorityLabel,
   getTaskStatusLabel,
   isTaskCompleted,
+  isTaskDueToday,
   matchesTaskFilter,
   matchesTaskSearch,
 } from '../utils/task-ui';
@@ -156,13 +157,14 @@ export const DashboardScreen = ({
     void fetchTasks();
   }, [fetchTasks]);
 
-  const filteredTasks = tasks.filter(
+  const todayTasks = tasks.filter((task) => isTaskDueToday(task));
+  const filteredTasks = todayTasks.filter(
     (task) => matchesTaskSearch(task, search) && matchesTaskFilter(task, filter)
   );
 
-  const completedCount = tasks.filter(isTaskCompleted).length;
-  const pendingCount = tasks.length - completedCount;
-  const progress = tasks.length > 0 ? completedCount / tasks.length : 0;
+  const completedCount = todayTasks.filter(isTaskCompleted).length;
+  const pendingCount = todayTasks.length - completedCount;
+  const progress = todayTasks.length > 0 ? completedCount / todayTasks.length : 0;
 
   if (initialLoadFailed) {
     return (
@@ -223,8 +225,11 @@ export const DashboardScreen = ({
             <TaskListLoadingState theme={theme} />
           ) : (
             <>
-          <Text style={[styles.heading, { color: theme.textPrimary }]}>
-            You have {pendingCount} pending task{pendingCount === 1 ? '' : 's'}
+          <Text style={[styles.heading, { color: theme.textPrimary }]}>Today&apos;s Tasks</Text>
+          <Text style={[styles.subheading, { color: theme.textSecondary }]}>
+            {todayTasks.length > 0
+              ? `${todayTasks.length} task${todayTasks.length === 1 ? '' : 's'} scheduled for today`
+              : 'No tasks scheduled for today yet'}
           </Text>
 
           <View style={styles.statsRow}>
@@ -235,7 +240,7 @@ export const DashboardScreen = ({
           <View style={styles.progressHeader}>
             <Text style={[styles.progressTitle, { color: theme.blue }]}>Task Progress</Text>
             <Text style={[styles.progressText, { color: theme.textSecondary }]}>
-              {completedCount} of {tasks.length} completed ({Math.round(progress * 100)}%)
+              {completedCount} of {todayTasks.length} completed ({Math.round(progress * 100)}%)
             </Text>
           </View>
 
@@ -256,7 +261,7 @@ export const DashboardScreen = ({
             <TextInput
               value={search}
               onChangeText={setSearch}
-              placeholder="Search tasks, patients ..."
+              placeholder="Search today's tasks..."
               placeholderTextColor={theme.textSecondary}
               style={[styles.searchInput, { color: theme.textPrimary }]}
             />
@@ -280,7 +285,7 @@ export const DashboardScreen = ({
 
           {(isRefreshing || isFetchingList) && tasks.length > 0 && <TaskSyncStatus theme={theme} />}
 
-          {filteredTasks.length === 0 && search.trim().length > 0 ? (
+        {filteredTasks.length === 0 && search.trim().length > 0 ? (
             <TaskSearchEmptyState
               query={search.trim()}
               theme={theme}
@@ -291,6 +296,8 @@ export const DashboardScreen = ({
                 router.replace('/tasks');
               }}
             />
+          ) : filteredTasks.length === 0 ? (
+            <TodayTasksEmptyState theme={theme} />
           ) : (
             filteredTasks.map((task) => (
               <TaskCard
@@ -538,6 +545,11 @@ const styles = StyleSheet.create({
   heading: {
     fontSize: 22,
     fontWeight: '800',
+  },
+  subheading: {
+    fontSize: 15,
+    fontWeight: '500',
+    marginTop: 6,
     marginBottom: 18,
   },
   statsRow: {
@@ -740,6 +752,36 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 8,
   },
-  
-  
+  emptyCard: {
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    fontWeight: '500',
+    lineHeight: 22,
+    textAlign: 'center',
+  },
 });
+
+const TodayTasksEmptyState = ({
+  theme,
+}: {
+  theme: ReturnType<typeof buildTheme>;
+}) => (
+  <View style={[styles.emptyCard, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+    <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Nothing due today</Text>
+    <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+      Add a task or check the full task list from the Tasks tab.
+    </Text>
+  </View>
+);

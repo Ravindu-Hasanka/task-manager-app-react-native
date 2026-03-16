@@ -64,7 +64,7 @@ export function normalizeApiError(error: unknown) {
   }
 
   if (!axiosError.response) {
-    return new ApiError('No network connection was detected. Please reconnect and try again.', {
+    return new ApiError('Something went wrong. Please try again.', {
       code: axiosError.code,
       isNetworkError: true,
     });
